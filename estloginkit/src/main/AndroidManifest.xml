@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright 2026 ESTAID, Inc. All Rights Reserved.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~ http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+  <uses-permission android:name="android.permission.INTERNET" />
+
+  <queries>
+    <!-- 카카오톡 앱 로그인 가용성 체크 -->
+    <package android:name="com.kakao.talk" />
+
+    <!--
+      Android 11+ 패키지 가시성 대응.
+      네이버 SDK(NidApplicationUtil.getCustomTabsPackageList)는
+      queryIntentActivities(Intent(ACTION_VIEW, http://...)) 결과에서
+      CustomTabsService 가능 패키지를 추려내는데, 이 intent 가
+      manifest 의 <queries> 에 선언돼 있지 않으면 Android 11+ 에서는
+      결과가 빈 리스트로 돌아온다. 네이버 공식 가이드도 동일한 선언을 요구한다.
+    -->
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:scheme="https" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:scheme="http" />
+    </intent>
+  </queries>
+
+  <application>
+    <activity
+      android:name="com.estaid.loginkit.internal.webview.EstOneWebViewActivity"
+      android:exported="false"
+      android:theme="@style/Theme.EstLoginKit" />
+
+    <activity
+      android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data
+          android:host="oauth"
+          android:scheme="${kakaoAuthScheme}" />
+      </intent-filter>
+    </activity>
+  </application>
+
+</manifest>

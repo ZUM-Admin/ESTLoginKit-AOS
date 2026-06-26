@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright 2026 ESTAID, Inc. All Rights Reserved.
+  -->
+<resources>
+  <style name="Theme.EstLoginKit" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>
