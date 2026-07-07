@@ -20,9 +20,9 @@ package com.estaid.loginkit.model
  *
  * - [UnsupportedPlatform] : 지원하지 않는 로그인 플랫폼
  * - [Cancelled] : 사용자 취소
- * - [Network] : 네트워크/서버 오류 (verificationStatus 등)
- * - [Unauthorized] : accessToken 만료/무효 — 토큰 갱신 후 재시도 필요
- * - [Unknown] : 그 외 (원본 에러 wrapping)
+ * - [NotInitialized] : `initialize(...)` 미호출 — 설정(환경/clientId)이 없음
+ * - [Server] : 서버가 2xx 가 아닌 상태 코드로 응답 (`statusCode == 401` 이면 토큰 갱신 후 재시도)
+ * - [Unknown] : 그 외 (네트워크 오류 포함, 원본 에러 wrapping)
  */
 sealed class AuthError(
   message: String? = null,
@@ -32,9 +32,9 @@ sealed class AuthError(
 
   data object Cancelled : AuthError("Login was cancelled")
 
-  data object Network : AuthError("Network or server error")
+  data object NotInitialized : AuthError("EstLoginManager is not initialized. Call initialize() first.")
 
-  data object Unauthorized : AuthError("Access token expired or invalid")
+  data class Server(val statusCode: Int) : AuthError("Server responded with status $statusCode")
 
   data class Unknown(val error: Throwable? = null) : AuthError(error?.message, error)
 }

@@ -55,8 +55,12 @@ internal class AuthNetworkClient(
       }
       .build()
 
+    // Retrofit 은 base URL 이 '/' 로 끝나야 한다. apiBaseUrl 은 host 만 오므로(예: https://api.estoneid.com)
+    // 보정한다. 실제 경로는 [AuthApiService] 의 선행 '/' 경로가 host 루트 기준으로 대체하므로 base path 는 무시된다.
+    val normalizedBaseUrl = if (authApiBaseUrl.endsWith("/")) authApiBaseUrl else "$authApiBaseUrl/"
+
     return Retrofit.Builder()
-      .baseUrl(authApiBaseUrl)
+      .baseUrl(normalizedBaseUrl)
       .client(okHttpClient)
       .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
       .build()

@@ -17,13 +17,12 @@ package com.estaid.loginkit
 
 import android.app.Activity
 import android.content.Context
-import android.util.Log
 import android.webkit.CookieManager
 import android.webkit.WebStorage
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import com.estaid.loginkit.internal.EstLog
 import com.estaid.loginkit.internal.SocialLoginInitializer
-import com.estaid.loginkit.internal.network.AuthApiResolver
 import com.estaid.loginkit.internal.network.AuthNetworkClient
 import com.estaid.loginkit.internal.webview.EstOneWebViewActivity
 import com.estaid.loginkit.model.AuthError
@@ -40,7 +39,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
-import java.io.IOException
 import java.net.URLEncoder
 import kotlin.coroutines.resume
 
@@ -50,8 +48,6 @@ import kotlin.coroutines.resume
  * SDK 는 stateless 이다 — ssoToken→accessToken 교환, 토큰 저장/갱신/만료는 호스트 책임.
  */
 object EstLoginManager {
-  private const val TAG = "EstLoginManager"
-
   private var appContext: Context? = null
   private var config: EstLoginConfiguration? = null
   private var initializer: SocialLoginInitializer? = null
@@ -63,10 +59,11 @@ object EstLoginManager {
     val app = context.applicationContext
     appContext = app
     this.config = config
+    EstLog.debugEnabled = config.debugMode
 
     initializer = SocialLoginInitializer(app, config).also { it.ensureInitialized() }
     networkClient = AuthNetworkClient(
-      authApiBaseUrl = AuthApiResolver.resolveAuthApi(config.baseUrl),
+      authApiBaseUrl = config.apiBaseUrl,
       debugMode = config.debugMode,
     )
 
@@ -74,7 +71,7 @@ object EstLoginManager {
     if (config.kakaoConfig != null) providers[LoginPlatform.KAKAO] = KakaoAuthProvider()
     if (config.naverConfig != null) providers[LoginPlatform.NAVER] = NaverAuthProvider()
 
-    Log.d(TAG, "EstLoginManager initialized (authApi=${AuthApiResolver.resolveAuthApi(config.baseUrl)})")
+    EstLog.info("initialized: env=${config.environment}, apiBaseUrl=${config.apiBaseUrl}")
   }
 
   fun getConfig(): EstLoginConfiguration? = config
@@ -104,12 +101,15 @@ object EstLoginManager {
    */
   suspend fun startWebLogin(
     activity: ComponentActivity,
+    url: String? = null,
     redirectUrl: String? = null,
     state: String? = null,
     extraUserAgent: String? = null,
   ): Result<String?> {
-    val cfg = config ?: return Result.failure(IllegalStateException("EstLoginManager is not initialized."))
-    val url = loginUrl(redirectUrl = redirectUrl, state = state)
+    val cfg = config ?: return Result.failure(AuthError.NotInitialized)
+    // 우선순위: 호출 시 직접 전달 URL → baseUrl+clientId 로 빌드한 로그인 URL
+    val resolvedUrl = url?.takeIf { it.isNotBlank() }
+      ?: loginUrl(redirectUrl = redirectUrl, state = state)
     return suspendCancellableCoroutine { continuation ->
       val launcher = activity.activityResultRegistry.register(
         "estloginkit-weblogin",
@@ -125,7 +125,7 @@ object EstLoginManager {
       }
       val intent = EstOneWebViewActivity.createIntent(
         context = activity,
-        loginUrl = url,
+        loginUrl = resolvedUrl,
         callbackUrl = cfg.callbackUrl,
         extraUserAgent = extraUserAgent ?: cfg.extraUserAgent,
         inspectable = cfg.webViewInspectable,
@@ -174,14 +174,14 @@ object EstLoginManager {
    */
   suspend fun logout() {
     val cfg = config ?: return
-    if (cfg.kakaoConfig != null) runCatching { kakaoLogout() }.onFailure { Log.e(TAG, "Kakao logout failed", it) }
-    if (cfg.naverConfig != null) runCatching { naverLogout() }.onFailure { Log.e(TAG, "Naver logout failed", it) }
+    if (cfg.kakaoConfig != null) runCatching { kakaoLogout() }.onFailure { EstLog.error("Kakao logout failed", it) }
+    if (cfg.naverConfig != null) runCatching { naverLogout() }.onFailure { EstLog.error("Naver logout failed", it) }
     clearWebSession()
   }
 
   private suspend fun kakaoLogout(): Unit = suspendCancellableCoroutine { continuation ->
     UserApiClient.instance.logout { error ->
-      if (error != null) Log.e(TAG, "Kakao logout error (ignored)", error)
+      if (error != null) EstLog.error("Kakao logout error (ignored)", error)
       if (continuation.isActive) continuation.resume(Unit)
     }
   }
@@ -193,7 +193,7 @@ object EstLoginManager {
       }
 
       override fun onFailure(errorCode: String, errorDesc: String) {
-        Log.e(TAG, "Naver logout failed: $errorCode $errorDesc")
+        EstLog.error("Naver logout failed: $errorCode $errorDesc")
         if (continuation.isActive) continuation.resume(Unit)
       }
     })
@@ -206,7 +206,7 @@ object EstLoginManager {
         flush()
       }
       WebStorage.getInstance().deleteAllData()
-    }.onFailure { Log.e(TAG, "clearWebSession failed", it) }
+    }.onFailure { EstLog.error("clearWebSession failed", it) }
     Unit
   }
 
@@ -215,30 +215,29 @@ object EstLoginManager {
   // region 본인인증 조회
 
   /**
-   * 본인인증 여부 조회. (iOS `verificationStatus(accessToken:)`)
+   * 회원 본인인증 상태 조회. (iOS `verificationStatus(accessToken:)`)
    *
    * SDK 는 토큰을 보관하지 않으므로 호스트가 [accessToken] 을 주입한다.
-   * 주의: 엔드포인트 경로/응답 JSON 은 백엔드 스펙 (미정).
+   * `GET /members/v1/certification/status` 를 `Authorization: Bearer {accessToken}` 으로 호출하며,
+   * 응답 `result.status` 가 `CERTIFIED` 이면 [VerificationStatus.isVerified] 가 `true` 이다.
    *
-   * @throws AuthError.Unauthorized accessToken 만료/무효(401)
-   * @throws AuthError.Network 네트워크/서버 오류
+   * @throws AuthError.NotInitialized `initialize(...)` 미호출
+   * @throws AuthError.Server 서버가 2xx 아닌 상태로 응답 (`statusCode == 401` 이면 토큰 갱신 후 재시도)
+   * @throws AuthError.Unknown 네트워크 오류 등 그 외 (원본 에러 wrapping)
    */
   suspend fun verificationStatus(accessToken: String): VerificationStatus {
-    val client = networkClient
-      ?: throw IllegalStateException("EstLoginManager is not initialized.")
+    val client = networkClient ?: throw AuthError.NotInitialized
     return try {
       val response = withContext(Dispatchers.IO) {
         client.authApiService.verificationStatus("Bearer $accessToken")
       }
       VerificationStatus(
-        isVerified = response.isVerified,
-        verifiedAt = response.verifiedAt,
-        expiresAt = response.expiresAt,
+        isVerified = response.result.status.equals("CERTIFIED", ignoreCase = true),
       )
     } catch (e: HttpException) {
-      if (e.code() == 401) throw AuthError.Unauthorized else throw AuthError.Network
-    } catch (e: IOException) {
-      throw AuthError.Network
+      throw AuthError.Server(statusCode = e.code())
+    } catch (e: AuthError) {
+      throw e
     } catch (e: Exception) {
       throw AuthError.Unknown(e)
     }
@@ -247,7 +246,7 @@ object EstLoginManager {
   // endregion
 
   private fun requireConfig(): EstLoginConfiguration =
-    config ?: throw IllegalStateException("EstLoginManager is not initialized. Call initialize() first.")
+    config ?: throw AuthError.NotInitialized
 
   private fun encode(value: String): String = URLEncoder.encode(value, Charsets.UTF_8.name())
 }

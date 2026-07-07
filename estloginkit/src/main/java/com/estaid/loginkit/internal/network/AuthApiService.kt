@@ -21,24 +21,34 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 
 /**
- * 본인인증 여부 조회 API. (README_v2 §본인인증)
+ * 회원 본인인증 상태 조회 API.
  *
  * SDK 는 stateless 이므로 토큰을 보관하지 않는다 — accessToken 은 호출 시 호스트가 주입하며
  * `Authorization: Bearer {accessToken}` 헤더로 전달된다.
  *
- * 주의: 엔드포인트 경로/응답 JSON 은 백엔드 스펙 (미정). 경로는 placeholder 이다.
+ * 경로는 host 루트 기준(선행 `/`)이므로 `apiBaseUrl`(예: `https://api.estoneid.com`)의
+ * `{scheme}://{host}/members/v1/certification/status` 로 해석된다.
  */
 internal interface AuthApiService {
-  @GET("verification/status") // (미정) — 스펙 확정 시 경로 변경
+  @GET("/members/v1/certification/status")
   suspend fun verificationStatus(
     @Header("Authorization") authorization: String,
-  ): VerificationStatusResponse
+  ): CertificationStatusResponse
 }
 
-/** (미정) — 응답 필드는 백엔드 스펙 확정 후 조정. */
+/**
+ * 공통 응답: `{ "result": { "status": "CERTIFIED" | "UNCERTIFIED" }, "message": "" }`
+ *
+ * - `CERTIFIED`   : 본인인증을 완료한 회원
+ * - `UNCERTIFIED` : 미인증 회원이거나 존재하지 않는 회원
+ */
 @Serializable
-internal data class VerificationStatusResponse(
-  @SerialName("isVerified") val isVerified: Boolean = false,
-  @SerialName("verifiedAt") val verifiedAt: String? = null,
-  @SerialName("expiresAt") val expiresAt: String? = null,
+internal data class CertificationStatusResponse(
+  @SerialName("result") val result: CertificationStatusResult = CertificationStatusResult(),
+  @SerialName("message") val message: String = "",
+)
+
+@Serializable
+internal data class CertificationStatusResult(
+  @SerialName("status") val status: String = "UNCERTIFIED",
 )

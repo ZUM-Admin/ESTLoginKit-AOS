@@ -16,6 +16,7 @@
 package com.estaid.loginkit.example
 
 import android.app.Application
+import com.estaid.loginkit.EstEnvironment
 import com.estaid.loginkit.EstLoginConfiguration
 import com.estaid.loginkit.EstLoginManager
 import com.estaid.loginkit.model.KakaoConfiguration
@@ -31,7 +32,7 @@ class ExampleApplication : Application() {
     EstLoginManager.initialize(
       context = this,
       config = EstLoginConfiguration.Builder(clientId = "YOUR_CLIENT_ID")
-        .useBaseUrl("https://test.estoneid.com")
+        .useEnvironment(EstEnvironment.DEVELOPMENT)   // 기본값: PRODUCTION
         // .useKakao(KakaoConfiguration(appKey = "YOUR_KAKAO_NATIVE_APP_KEY"))
         // .useNaver(
         //   NaverConfiguration(

@@ -15,8 +15,8 @@
  */
 package com.estaid.loginkit.internal.webview
 
-import android.util.Log
 import android.webkit.JavascriptInterface
+import com.estaid.loginkit.internal.EstLog
 
 /**
  * 웹 → 네이티브 JS 브릿지. (iOS `WKScriptMessageHandler` 대칭)
@@ -28,29 +28,27 @@ internal class AuthJsInterface(
   private val onPasswordChanged: () -> Unit,
   private val onAccountDeleted: () -> Unit,
 ) {
-  private val logTag = "EstLoginJsInterface"
-
   @JavascriptInterface
   fun requestSnsLogin(message: String) {
-    Log.d(logTag, "[bridge] ${WebViewMessage.REQUEST_SNS_LOGIN.rawValue}: $message")
+    EstLog.debug("[bridge] ${WebViewMessage.REQUEST_SNS_LOGIN.rawValue}: $message")
     onSnsLoginRequested(message)
   }
 
   @JavascriptInterface
   fun onLoginComplete(message: String) {
     // 관찰/통지용 — dismiss/redirect 는 callbackUrl/state 매칭으로 처리됨.
-    Log.d(logTag, "[bridge] ${WebViewMessage.ON_LOGIN_COMPLETE.rawValue}: $message")
+    EstLog.debug("[bridge] ${WebViewMessage.ON_LOGIN_COMPLETE.rawValue}: $message")
   }
 
   @JavascriptInterface
   fun onPasswordChanged() {
-    Log.d(logTag, "[bridge] ${WebViewMessage.ON_PASSWORD_CHANGED.rawValue}")
+    EstLog.debug("[bridge] ${WebViewMessage.ON_PASSWORD_CHANGED.rawValue}")
     onPasswordChanged.invoke()
   }
 
   @JavascriptInterface
   fun onAccountDeleted() {
-    Log.d(logTag, "[bridge] ${WebViewMessage.ON_ACCOUNT_DELETED.rawValue}")
+    EstLog.debug("[bridge] ${WebViewMessage.ON_ACCOUNT_DELETED.rawValue}")
     onAccountDeleted.invoke()
   }
 }

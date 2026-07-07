@@ -15,8 +15,8 @@
  */
 package com.estaid.loginkit.provider
 
-import android.util.Log
 import androidx.activity.ComponentActivity
+import com.estaid.loginkit.internal.EstLog
 import com.estaid.loginkit.model.AuthError
 import com.estaid.loginkit.model.AuthResult
 import com.navercorp.nid.NidOAuth
@@ -29,7 +29,6 @@ import kotlin.coroutines.resumeWithException
  * 네이버 네이티브 로그인. (iOS `NaverAuthProvider` 대칭)
  */
 internal class NaverAuthProvider : AuthProvider {
-  private val logTag = "NaverAuthProvider"
 
   override suspend fun login(activity: ComponentActivity): AuthResult =
     suspendCancellableCoroutine { continuation ->
@@ -55,7 +54,7 @@ internal class NaverAuthProvider : AuthProvider {
 
           override fun onFailure(errorCode: String, errorDesc: String) {
             if (!continuation.isActive) return
-            Log.d(logTag, "Naver onFailure: code=$errorCode desc=$errorDesc")
+            EstLog.debug("Naver onFailure: code=$errorCode desc=$errorDesc")
             continuation.resumeWithException(mapError(errorCode, errorDesc))
           }
         },
@@ -65,8 +64,6 @@ internal class NaverAuthProvider : AuthProvider {
   private fun mapError(errorCode: String, errorDesc: String): AuthError = when {
     errorCode.equals("user_cancel", ignoreCase = true) ||
       errorCode.equals("CLIENT_USER_CANCEL", ignoreCase = true) -> AuthError.Cancelled
-    errorCode.contains("connection", ignoreCase = true) ||
-      errorCode.contains("network", ignoreCase = true) -> AuthError.Network
     else -> AuthError.Unknown(IllegalStateException("Naver login failed: $errorCode $errorDesc"))
   }
 }

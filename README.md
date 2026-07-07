@@ -1,8 +1,7 @@
 # ESTLoginKit (Android)
 
 소셜 로그인(카카오·네이버) · WebView 로그인(구글·애플 포함) · 마이페이지 · **본인인증**을
-간편하게 통합하는 Android 라이브러리입니다. iOS [ESTLoginKit](https://github.com/ZUM-Internet/ESTLoginKit-iOS) 의 Android 포팅판으로,
-API·동작·문서를 iOS 와 정합시키는 것을 목표로 합니다.
+간편하게 통합하는 Android 라이브러리입니다.
 
 > ## ⚠️ 토큰 관리는 이 SDK 에서 하지 않습니다 (stateless)
 > 다음은 전부 **호스트 앱의 책임**입니다:
@@ -19,8 +18,8 @@ API·동작·문서를 iOS 와 정합시키는 것을 목표로 합니다.
 | 카카오·네이버 **네이티브 로그인** | ssoToken → accessToken/refreshToken **교환** |
 | **WebView 로그인 화면** (구글·애플 포함) + ssoToken 회수 | 토큰 **저장·갱신·만료** 처리 |
 | **로그인 URL 빌더** (`loginUrl`, `silent`) | 본인인증을 **언제 띄울지(정책)** |
-| **마이페이지 화면** + 계정 이벤트 통지 콜백 | 화면 표시/종료 |
-| **로그아웃** (네이티브 토큰 + WebView 세션 데이터 정리) | 로그인 결과 후속 처리(서버 통신 등) |
+| **마이페이지 화면** + 계정 이벤트 통지 콜백 | 화면 표시/종료(dismiss) |
+| **로그아웃** (네이티브 SDK 토큰 + WebView 세션 데이터 정리) | 로그인 결과 후속 처리(서버 통신 등) |
 | **본인인증 여부 조회 API** (스펙 일부 미정) | |
 
 ## 요구사항
@@ -34,71 +33,394 @@ API·동작·문서를 iOS 와 정합시키는 것을 목표로 합니다.
 - `:estloginkit` — 라이브러리 (artifact `com.estaid:loginkit`)
 - `:example` — 최소 통합 데모 앱
 
+설치(의존성 추가)·매니페스트·배포 등 연동 상세는 [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) 를 참고하세요.
+
+## 외부에서 주입해야 할 값
+
+통합 시 호스트 앱이 직접 주입해야 하는 값입니다. 유출되면 안 되는 항목(앱 키·시크릿)은
+`local.properties`, `BuildConfig`, 빌드 환경 변수 등으로 분리해 소스/VCS 에 노출되지 않게
+관리하는 것을 권장합니다.
+
+### 필수
+
+| 항목 | 주입 위치 | 설명 |
+|------|----------|------|
+| `clientId` | `EstLoginConfiguration.Builder(clientId = ...)` | ESTLoginKit 에서 발급받은 클라이언트 ID |
+
+### 플랫폼 (사용하는 플랫폼만)
+
+| 플랫폼 | 항목 | 주입 위치 |
+|-------|------|----------|
+| 카카오 | `appKey` (네이티브 앱 키) | `KakaoConfiguration(appKey = ...)` → `.useKakao(...)` |
+| 카카오 | URL Scheme `kakao{APP_KEY}` | `manifestPlaceholders["kakaoAuthScheme"]` (아래 빠른 시작 §2 참고) |
+| 카카오 | `customScheme` (선택) | `KakaoConfiguration(appKey, customScheme = ...)` — 개발/운영 앱 분리 시 |
+| 네이버 | `appName` | `NaverConfiguration(appName = ...)` → `.useNaver(...)` |
+| 네이버 | `clientId` | `NaverConfiguration(clientId = ...)` |
+| 네이버 | `clientSecret` | `NaverConfiguration(clientSecret = ...)` |
+
+### 선택 (미지정 시 기본값 사용)
+
+| 항목 | 주입 위치 | 기본값 / 설명 |
+|------|----------|-------------|
+| `environment` | `Builder.useEnvironment(...)` | `EstEnvironment.PRODUCTION`(기본) / `DEVELOPMENT`. 웹·API host 가 환경별로 함께 결정됨 |
+| `callbackUrl` | `Builder.useCallbackUrl(...)` | `{baseUrl}/auth/app-callback`. WebView 로그인 완료 감지(prefix + `code` 쿼리) |
+| `extraUserAgent` | `Builder.useExtraUserAgent(...)` | null. SDK WebView UA 뒤에 append |
+| `webViewInspectable` | `Builder.webViewInspectable(...)` | false. Chrome DevTools inspect |
+| `debugMode` | `Builder.debugMode(...)` | false. SSL 우회 + 로깅 (디버그 빌드 전용) |
+
 ## 빠른 시작
 
 ### 1. 초기화 (`Application.onCreate`)
 
 ```kotlin
-EstLoginManager.initialize(
-  context = this,
-  config = EstLoginConfiguration.Builder(clientId = "YOUR_CLIENT_ID")
-    .useBaseUrl("https://estoneid.com")           // 기본값 estoneid.com (개발: test.estoneid.com)
-    .useKakao(KakaoConfiguration(appKey = "..."))
-    .useNaver(NaverConfiguration(appName = "앱이름", clientId = "...", clientSecret = "..."))
-    .build(),
+class MyApp : Application() {
+  override fun onCreate() {
+    super.onCreate()
+    EstLoginManager.initialize(
+      context = this,
+      config = EstLoginConfiguration.Builder(clientId = "YOUR_CLIENT_ID")
+        .useEnvironment(EstEnvironment.PRODUCTION)     // 기본값: PRODUCTION (개발: DEVELOPMENT)
+        .useKakao(KakaoConfiguration(appKey = "YOUR_KAKAO_NATIVE_APP_KEY"))
+        .useNaver(
+          NaverConfiguration(
+            appName = getString(R.string.app_name),
+            clientId = "YOUR_NAVER_CLIENT_ID",
+            clientSecret = "YOUR_NAVER_CLIENT_SECRET",
+          ),
+        )
+        .webViewInspectable(BuildConfig.DEBUG)
+        .debugMode(BuildConfig.DEBUG)
+        .build(),
+    )
+  }
+}
+```
+
+> 웹 host 와 API host 는 `environment` 가 **쌍으로 소유**해 웹/API 불일치를 원천 차단합니다.
+> - `PRODUCTION` → 웹 `estoneid.com` · API `api.estoneid.com`
+> - `DEVELOPMENT` → 웹 `dev.estoneid.com` · API `dev-api.estoneid.com`
+
+### 2. 카카오 매니페스트 설정 (카카오 로그인 사용 시)
+
+SDK 가 카카오 로그인용 `AuthCodeHandlerActivity` 와 `<queries>` 를 **자동 등록**합니다.
+호스트는 카카오 scheme placeholder 만 설정하면 됩니다.
+
+```kotlin
+// app/build.gradle.kts
+android {
+  buildTypes {
+    debug   { manifestPlaceholders["kakaoAuthScheme"] = "kakao{네이티브_앱_키}" }
+    release { manifestPlaceholders["kakaoAuthScheme"] = "kakao{네이티브_앱_키}" }
+  }
+}
+```
+
+> 카카오 미사용 시 `manifestPlaceholders["kakaoAuthScheme"] = ""` 로 비워 둡니다.
+> `AuthCodeHandlerActivity` 나 `<queries><package android:name="com.kakao.talk" /></queries>` 를
+> 호스트 매니페스트에 **직접 선언하지 마세요** — SDK 가 제공합니다. (상세: [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md))
+
+#### 개발/운영 앱 스킴 분리 (선택)
+
+개발 앱과 운영 앱이 **동일한 카카오 앱 키**를 사용하면 URL Scheme(`kakao{APP_KEY}`)이 같아져,
+카카오 인증 후 콜백이 의도치 않게 다른 앱으로 열릴 수 있습니다. 이를 막으려면 `customScheme` 으로
+개발 앱 전용 스킴을 지정합니다.
+
+```kotlin
+// 개발 빌드
+.useKakao(
+  KakaoConfiguration(
+    appKey = "YOUR_KAKAO_NATIVE_APP_KEY",
+    customScheme = "kakao{APP_KEY}dev",   // 개발 전용 스킴
+  ),
 )
 ```
 
-> 인증 서버(AUTH_API)는 `baseUrl` 에 대응해 자동 결정됩니다. (운영 `api.estoneid.com/auth`, 개발 `dev-api.estoneid.com/auth`)
+`customScheme` 을 지정하면 카카오 SDK 초기화에 전달됩니다. 카카오 개발자 콘솔과
+`manifestPlaceholders["kakaoAuthScheme"]` 에도 **동일한 스킴**을 등록해야 합니다.
+운영 앱은 `customScheme` 을 생략하면 기본 스킴(`kakao{APP_KEY}`)이 사용됩니다.
 
-### 2. 네이티브 로그인 (카카오 / 네이버)
+### 3. 네이티브 로그인 (카카오 / 네이버)
 
 ```kotlin
-val result = EstLoginManager.login(activity, LoginPlatform.KAKAO)  // AuthResult
-// 실패 시 AuthError(Cancelled / Network / Unknown ...) throw
+// activity 는 ComponentActivity (AppCompatActivity / ComponentActivity 등)
+try {
+  val result = EstLoginManager.login(activity, LoginPlatform.KAKAO)  // suspend, AuthResult 반환
+  // result.authorizeToken / refreshToken / ci / email
+  // → 토큰 교환·저장은 호스트 책임
+} catch (e: AuthError.Cancelled) {
+  // 사용자 취소
+} catch (e: AuthError) {
+  // UnsupportedPlatform / Unknown 등
+}
 ```
 
-### 3. WebView 로그인 (ssoToken 회수)
+### 4. WebView 로그인 (ssoToken 회수)
+
+네이티브 SDK 가 없는 구글·애플 등은 WebView OAuth 경로로 일원화됩니다.
 
 ```kotlin
-// Activity 기반 (권장)
-val sso = EstLoginManager.startWebLogin(activity).getOrNull()
+// Activity 기반 (권장) — 별도 화면 띄우고 ssoToken 회수
+val sso: String? = EstLoginManager.startWebLogin(activity).getOrNull()
+// 실패/취소 시 Result.failure(AuthError.Cancelled ...)
 
-// 또는 Compose 임베드
+// 또는 자체 Compose 네비게이션에 임베드
 EstLoginWebView(onLoginCompleted = { ssoToken -> /* 토큰 교환은 호스트 */ })
 ```
 
-### 4. 마이페이지 / 로그아웃
+자세한 콜백 흐름·시그니처·화면 종료(dismiss) 책임은 아래 [웹뷰 로그인 상세](#웹뷰-로그인-상세)를 참고하세요.
+
+### 5. 마이페이지 / 로그아웃
 
 ```kotlin
 EstMyPageWebView(
-  onPasswordChanged = { /* silent 재발급 */ },
+  onPasswordChanged = { /* silent 재발급 등 */ },
   onAccountDeleted = { /* 로그아웃 처리 */ },
+  onBackPressed = { /* 화면 종료는 호스트 */ },
 )
 
-EstLoginManager.logout()  // 네이티브 토큰 + WebView 세션 데이터 정리 (앱 저장 토큰은 호스트가 삭제)
+EstLoginManager.logout()  // suspend — 네이티브 SDK 토큰 + WebView 세션 데이터 정리
 ```
 
-### 5. 본인인증 여부 조회
+> **로그아웃은 반드시 호출하세요.** 카카오·네이버 네이티브 SDK 는 인증 토큰을 기기에 보관합니다.
+> `logout()` 은 카카오/네이버 네이티브 토큰과 WebView 세션 데이터(쿠키 + localStorage)를 정리하지만,
+> **호스트 앱이 직접 저장한 accessToken/refreshToken 은 SDK 가 보관하지 않으므로 호스트가 직접 삭제**해야 합니다.
+
+### 6. 본인인증 여부 조회
 
 ```kotlin
-val status = EstLoginManager.verificationStatus(accessToken = myAccessToken)  // VerificationStatus
-if (!status.isVerified) { /* 본인인증 화면 진입 — 정책 판단은 호스트 */ }
+try {
+  val status = EstLoginManager.verificationStatus(accessToken = myAccessToken)  // suspend
+  if (!status.isVerified) { /* 본인인증 화면 진입 — 정책 판단은 호스트 */ }
+} catch (e: AuthError.Server) {
+  // 서버가 2xx 아닌 상태로 응답. e.statusCode == 401 이면 accessToken 만료/무효 — 갱신 후 재시도
+} catch (e: AuthError.Unknown) {
+  // 네트워크 오류 등 (e.error 에 원본 에러)
+}
 ```
 
-> 본인인증 **화면 / 엔드포인트 경로 / 응답 JSON 은 백엔드 스펙 (미정)** 입니다. `verificationUrl()`,
-> `verificationStatus()` 의 경로·응답 매핑은 스펙 확정 시 조정됩니다.
+> **조회 API는 확정**입니다 — `GET /members/v1/certification/status` (Bearer 토큰), 응답
+> `status` 가 `CERTIFIED`(완료) / `UNCERTIFIED`(미인증·미존재). 본인인증 **화면**(URL·완료 콜백 방식)은
+> 아직 (미정)입니다. 화면을 포함한 전체 흐름은 아래 [본인인증 (Identity Verification)](#본인인증-identity-verification) 섹션을 참고하세요.
 
-## iOS 와의 매핑
+## 웹뷰 로그인 상세
+
+WebView 로그인은 **SSO 콜백 방식**으로 동작합니다. 로그인이 완료되면 `callbackUrl` 로 리다이렉트되고,
+SDK 가 그 URL 의 `code` 쿼리를 `ssoToken` 으로 추출해 전달합니다.
+
+### 로그인 URL 빌더
+
+```kotlin
+// 기본 (redirect_url = {baseUrl}/auth/app-callback)
+val url = EstLoginManager.loginUrl()
+
+// redirect_url / state 지정 (둘 다 선택)
+val url2 = EstLoginManager.loginUrl(
+  redirectUrl = "https://example.com/callback",
+  state = "https://m.example.com",
+)
+
+// 재인증 없이 조용히 (silent)
+val url3 = EstLoginManager.loginUrl(silent = true)
+```
+
+생성되는 URL 형식:
+
+```
+https://estoneid.com/user/login
+  ?type=callback
+  &client_id={발급받은 클라이언트 ID}
+  &redirect_url=https://estoneid.com/auth/app-callback
+  &state={앱이 전달할 임의 값 (선택)}
+  &silent=true   (silent = true 일 때만)
+```
+
+> `state` 는 선택 파라미터입니다. 생략하면 URL 에 `state` 쿼리 자체가 포함되지 않습니다.
+
+### 컴포저블 시그니처 (`EstLoginWebView`)
+
+```kotlin
+@Composable
+fun EstLoginWebView(
+  url: String = EstLoginManager.loginUrl(),
+  callbackUrl: String? = EstLoginManager.getConfig()?.callbackUrl,
+  extraUserAgent: String? = null,
+  inspectable: Boolean = false,
+  onPasswordChanged: () -> Unit = {},
+  onAccountDeleted: () -> Unit = {},
+  onBackPressed: () -> Unit = {},
+  onLoginCompleted: (ssoToken: String?) -> Unit,
+)
+```
+
+- `callbackUrl` 의 `code` 추출에 성공하면 `onLoginCompleted(ssoToken)` (non-null) 호출.
+- `ssoToken` 이 **null** 이면 코드 회수에 실패한 경우입니다(예: 콜백 미도달). 일반적으로 `callbackUrl`
+  을 지정해 non-null 케이스로 성공을 판정하세요.
+
+> **화면 종료(dismiss/뒤로가기)는 호출부 책임입니다.** 컴포저블은 화면을 스스로 닫지 않습니다.
+> `onLoginCompleted` / `onBackPressed` 안에서 네비게이션 pop 또는 dialog 닫기를 직접 구현하세요.
+
+## 본인인증 (Identity Verification)
+
+본인인증은 로그인/회원가입과 **완전히 분리**되어 있습니다. 앱은 (1) 인증 여부를 조회하고,
+(2) 필요할 때 본인인증 화면을 직접 띄웁니다.
+
+> **상태 조회 API는 확정**되어 구현돼 있습니다(`GET /members/v1/certification/status`). 본인인증
+> **화면 컴포넌트**(화면 URL / 완료 콜백 방식 / 결과 필드)는 아직 `(미정)` 이며 스펙 확정 후 제공
+> 예정입니다. 아래 §2 화면 API 시그니처는 iOS 버전과 대칭으로 미리 적어둔 placeholder 이며 바뀔 수 있습니다.
+
+### 책임 분리 — 상태(fact) vs 정책(policy)
+
+| 구분 | 의미 | 담당 |
+|------|------|------|
+| **상태(fact)** | "이 사용자가 본인인증을 했는가?" — 백엔드가 아는 객관적 사실 | **SDK가 조회 API 제공** |
+| **정책(policy)** | "지금 이 시점에 본인인증을 요구할까?" (결제 직전? 글쓰기 직전?) | **앱(호스트)이 결정** |
+
+- 본인인증 화면을 **언제 띄울지(트리거)는 앱이 판단**합니다. SDK는 비즈니스 규칙을 갖지 않습니다.
+- 판단 근거가 되는 **인증 여부는 `verificationStatus(...)` 로 조회**합니다.
+- 본인인증 **화면은 SDK가 제공**하고, **띄우기/닫기는 앱이 담당**합니다.
+
+### 1. 인증 여부 조회 — `verificationStatus` (구현됨)
+
+```kotlin
+data class VerificationStatus(
+  val isVerified: Boolean,   // 응답 status == "CERTIFIED" 이면 true
+)
+
+// SDK 는 토큰을 보관하지 않으므로 호스트가 accessToken 을 주입한다.
+suspend fun EstLoginManager.verificationStatus(accessToken: String): VerificationStatus
+```
+
+내부적으로 다음을 호출합니다.
+
+```http
+GET /members/v1/certification/status
+Authorization: Bearer {accessToken}
+```
+
+응답(공통):
+
+```json
+{ "result": { "status": "CERTIFIED" },   "message": "" }   // 본인인증 완료 회원
+{ "result": { "status": "UNCERTIFIED" }, "message": "" }   // 미인증 회원이거나 존재하지 않는 회원
+```
+
+> 인증 상태는 **통합회원 계정 단위**로 관리되어 모든 계열사에서 동일하게 조회됩니다. `status` 가
+> `CERTIFIED` 이면 `isVerified == true` 입니다.
+
+### 2. 본인인증 화면 (미정 — 제공 예정)
+
+화면 콘텐츠는 SDK가 제공하고, **띄우기는 호스트**가 합니다. Compose / Activity 두 진입점을 제공할 예정입니다.
+
+```kotlin
+// 본인인증 화면 완료 결과 (ci/di 등 추가 필드는 미정)
+data class VerificationResult(
+  val token: String,
+)
+
+// Compose — url 기본값은 verificationUrl() (미정)
+@Composable
+fun EstIdentityVerificationWebView(
+  url: String = EstLoginManager.verificationUrl(),   // (미정)
+  callbackUrl: String? = null,                        // 완료 콜백 방식(jsBridge / callbackUrl code) (미정)
+  onBackPressed: () -> Unit = {},
+  onResult: (Result<VerificationResult>) -> Unit,     // 성공 시 VerificationResult, 취소 시 AuthError.Cancelled
+)
+
+// Activity 기반 (startWebLogin 과 동일 패턴) — (미정)
+suspend fun EstLoginManager.startIdentityVerification(
+  activity: ComponentActivity,
+): Result<VerificationResult>
+```
+
+> 본인인증 **화면 URL(`verificationUrl()`)과 완료 콜백 회수 방식**(jsBridge `onLoginComplete` 류 vs
+> `callbackUrl` 의 `code` 가로채기)은 아직 (미정)입니다. WebView 인프라(`EstOneWebViewScreen`,
+> JS 브릿지 `AndroidInterface`, `callbackUrl` 매칭)는 이미 갖춰져 있어, 스펙 확정 시 위 컴포넌트는
+> 그 위에 얇게 추가됩니다.
+
+### 3. 전체 흐름 — "필요한 시점에 본인인증" (Compose, 미정 API 기준)
+
+본인인증이 필요한 시점(예: 결제 진입)에서 앱이 상태를 확인하고, 미인증이면 화면을 띄웁니다.
+
+```kotlin
+@Composable
+fun CheckoutButton(myAccessToken: String) {
+  var showVerification by remember { mutableStateOf(false) }
+  val scope = rememberCoroutineScope()
+
+  Button(onClick = {
+    scope.launch {
+      // 정책 판단은 앱이 — 여기서는 "미인증이면 막는다"
+      val verified = runCatching {
+        EstLoginManager.verificationStatus(accessToken = myAccessToken).isVerified
+      }.getOrDefault(false)
+      if (verified) proceedCheckout(verificationToken = null) else showVerification = true
+    }
+  }) { Text("결제하기") }
+
+  if (showVerification) {
+    EstIdentityVerificationWebView(           // (미정)
+      onBackPressed = { showVerification = false },
+      onResult = { result ->
+        showVerification = false
+        result
+          .onSuccess { proceedCheckout(verificationToken = it.token) }
+          .onFailure { /* AuthError.Cancelled 등 처리 */ }
+      },
+    )
+  }
+}
+```
+
+### 4. 동작 정리
+
+| 항목 | 동작 |
+|------|------|
+| 본인인증 트리거(언제 띄울지) | **호스트** (결제 직전 등 비즈니스 시점) |
+| 인증 여부 조회 | `verificationStatus(accessToken)` (SDK, 구현됨) |
+| 인증 화면 제공 | `EstIdentityVerificationWebView` / `startIdentityVerification` (SDK, 미정) |
+| 화면 띄우기/닫기 | **호스트** |
+| 토큰 | **호스트가 주입** (SDK 미보관) |
+| 결과 | `Result<VerificationResult>` |
+
+## 에러 처리
+
+`EstLoginManager.login(...)` 은 성공 시 `AuthResult` 를 반환하고, 실패 시 아래 `AuthError` 를 던집니다.
+
+```kotlin
+sealed class AuthError : Exception() {
+  data object UnsupportedPlatform   // 미지원 플랫폼 (카카오/네이버 외)
+  data object Cancelled             // 사용자 취소
+  data object NotInitialized        // initialize(...) 미호출
+  data class  Server(statusCode)    // 서버가 2xx 아닌 상태로 응답 (401 이면 갱신 후 재시도)
+  data class  Unknown(error)        // 그 외 (네트워크 오류 포함, 원본 에러 wrapping)
+}
+```
+
+- `startWebLogin(...)` 은 예외 대신 `Result<String?>` 을 반환하며, 취소 시 `Result.failure(AuthError.Cancelled)`.
+- `EstLoginWebView` / `EstMyPageWebView` 의 콜백은 예외를 던지지 않습니다(`onLoginCompleted` 의 `ssoToken` null 여부로 판정).
+- 네이티브 SDK(카카오/네이버) 자체 에러 상세 분류가 필요하면 `AuthError.Unknown(error)` 의 원본 에러나
+  각 [레퍼런스](#레퍼런스) 공식 문서를 참고하세요.
+
+## 레퍼런스
+
+- [Kakao developers (Android)](https://developers.kakao.com/docs/latest/ko/android/getting-started)
+- [Naver Login SDK (Android)](https://developers.naver.com/docs/login/android/android.md)
+
+---
+
+## 부록 — iOS 버전과의 API 매핑 (마이그레이션 참고용)
+
+이 SDK 는 [iOS ESTLoginKit](https://github.com/ZUM-Internet/ESTLoginKit-iOS) 과 API·동작을 정합시킵니다.
+양쪽을 함께 다루는 개발자를 위한 대조표이며, **Android 단독 사용에는 필요 없습니다.**
 
 | iOS | Android |
 |---|---|
 | `ESTLoginManager.shared` | `EstLoginManager` (object) |
 | `ESTLoginConfiguration.Builder` | `EstLoginConfiguration.Builder` |
+| `ESTEnvironment` (`.production`/`.development`) | `EstEnvironment` (`PRODUCTION`/`DEVELOPMENT`) |
+| `useEnvironment(_:)` | `useEnvironment(...)` |
 | `login(with:)` | `login(activity, platform)` |
 | `loginURL(redirectURL:state:silent:)` | `loginUrl(redirectUrl, state, silent)` |
 | `LoginWebView` / `MyPageWebView` | `EstLoginWebView` / `EstMyPageWebView` |
 | `verificationStatus(accessToken:)` | `verificationStatus(accessToken)` |
 | `logout()` | `logout()` |
-
-연동 키 설정·매니페스트·JS 브릿지 등 상세는 [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) 참고.

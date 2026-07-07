@@ -25,17 +25,18 @@ import com.estaid.loginkit.model.NaverConfiguration
  * iOS 와 동일하게 Builder 로 생성한다:
  * ```
  * val config = EstLoginConfiguration.Builder(clientId = "...")
- *   .useBaseUrl("https://test.estoneid.com")
+ *   .useEnvironment(EstEnvironment.DEVELOPMENT) // 기본값: PRODUCTION
  *   .useKakao(KakaoConfiguration(appKey = "..."))
  *   .useNaver(NaverConfiguration(appName = "...", clientId = "...", clientSecret = "..."))
  *   .build()
  * ```
  *
- * 인증 서버(AUTH_API)는 [baseUrl] 에 대응해 자동 결정된다. (README_v2 §설정)
+ * 웹 host 와 API host 는 [environment] 가 쌍으로 소유한다 — 앱은 환경만 선택하며
+ * 웹/API 불일치가 원천 차단된다. ([EstEnvironment])
  */
 class EstLoginConfiguration private constructor(
   val clientId: String,
-  val baseUrl: String,
+  val environment: EstEnvironment,
   val kakaoConfig: KakaoConfiguration?,
   val naverConfig: NaverConfiguration?,
   // --- Android WebView 옵션 (iOS 는 View 파라미터로 받지만 Android 는 편의상 config 로도 노출) ---
@@ -50,12 +51,14 @@ class EstLoginConfiguration private constructor(
   /** 마이페이지에서 회원 탈퇴 통지 — 호스트가 로그아웃 처리. */
   val onAccountDeleted: (() -> Unit)?,
 ) {
-  companion object {
-    const val DEFAULT_BASE_URL = "https://estoneid.com"
-  }
+  /** 로그인/마이페이지 등 웹 base URL. ([environment] 소유) */
+  val baseUrl: String get() = environment.webBaseUrl
+
+  /** 본인인증 등 REST API base URL. ([environment] 소유) */
+  val apiBaseUrl: String get() = environment.apiBaseUrl
 
   class Builder(private val clientId: String) {
-    private var baseUrl: String = DEFAULT_BASE_URL
+    private var environment: EstEnvironment = EstEnvironment.PRODUCTION
     private var kakaoConfig: KakaoConfiguration? = null
     private var naverConfig: NaverConfiguration? = null
     private var callbackUrl: String? = null
@@ -66,7 +69,8 @@ class EstLoginConfiguration private constructor(
     private var onPasswordChanged: (() -> Unit)? = null
     private var onAccountDeleted: (() -> Unit)? = null
 
-    fun useBaseUrl(baseUrl: String) = apply { this.baseUrl = baseUrl }
+    /** 실행 환경 선택. 웹/API base URL 이 함께 결정된다. (기본: [EstEnvironment.PRODUCTION]) */
+    fun useEnvironment(environment: EstEnvironment) = apply { this.environment = environment }
 
     fun useKakao(config: KakaoConfiguration?) = apply { this.kakaoConfig = config }
 
@@ -88,10 +92,10 @@ class EstLoginConfiguration private constructor(
 
     fun build(): EstLoginConfiguration = EstLoginConfiguration(
       clientId = clientId,
-      baseUrl = baseUrl,
+      environment = environment,
       kakaoConfig = kakaoConfig,
       naverConfig = naverConfig,
-      callbackUrl = callbackUrl ?: "$baseUrl/auth/app-callback",
+      callbackUrl = callbackUrl ?: "${environment.webBaseUrl}/auth/app-callback",
       extraUserAgent = extraUserAgent,
       webViewInspectable = webViewInspectable,
       debugMode = debugMode,

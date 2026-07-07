@@ -16,13 +16,11 @@
 package com.estaid.loginkit.model
 
 /**
- * 본인인증 여부 조회 결과. (iOS `VerificationStatus` 대칭)
+ * 회원 본인인증 상태 조회 결과. (iOS `VerificationStatus` 대칭)
  *
- * 주의: 응답 필드(verifiedAt/expiresAt 타입·존재 여부)는 백엔드 스펙 (미정).
- * 스펙 확정 시 타입이 Date 계열로 바뀔 수 있다.
+ * 응답은 통합회원 계정 단위의 인증 완료 여부(`CERTIFIED`/`UNCERTIFIED`)만 제공한다.
+ * [isVerified] 가 `true` 이면 `CERTIFIED` 이다.
  */
 data class VerificationStatus(
   val isVerified: Boolean,
-  val verifiedAt: String? = null,
-  val expiresAt: String? = null,
 )

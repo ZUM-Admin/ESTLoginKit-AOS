@@ -15,8 +15,8 @@
  */
 package com.estaid.loginkit.provider
 
-import android.util.Log
 import androidx.activity.ComponentActivity
+import com.estaid.loginkit.internal.EstLog
 import com.estaid.loginkit.model.AuthError
 import com.estaid.loginkit.model.AuthResult
 import com.kakao.sdk.auth.model.OAuthToken
@@ -35,7 +35,6 @@ import com.kakao.sdk.common.model.AuthError as KakaoAuthError
  * 카카오톡 앱이 가능하면 앱 로그인, 아니면 카카오계정 웹 로그인으로 폴백한다.
  */
 internal class KakaoAuthProvider : AuthProvider {
-  private val logTag = "KakaoAuthProvider"
 
   override suspend fun login(activity: ComponentActivity): AuthResult =
     suspendCancellableCoroutine { continuation ->
@@ -57,7 +56,7 @@ internal class KakaoAuthProvider : AuthProvider {
       }
 
       val talkAvailable = UserApiClient.instance.isKakaoTalkLoginAvailable(activity)
-      Log.d(logTag, "KakaoTalk login available=$talkAvailable")
+      EstLog.debug("KakaoTalk login available=$talkAvailable")
 
       if (talkAvailable) {
         UserApiClient.instance.loginWithKakaoTalk(activity) { token, error ->
@@ -65,7 +64,7 @@ internal class KakaoAuthProvider : AuthProvider {
             error == null -> callback(token, null)
             error is ClientError && error.reason == ClientErrorCause.Cancelled -> callback(null, error)
             else -> {
-              Log.e(logTag, "KakaoTalk login failed, falling back to account web login.", error)
+              EstLog.error("KakaoTalk login failed, falling back to account web login.", error)
               UserApiClient.instance.loginWithKakaoAccount(activity, callback = callback)
             }
           }

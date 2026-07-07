@@ -16,7 +16,6 @@
 package com.estaid.loginkit.internal
 
 import android.content.Context
-import android.util.Log
 import com.estaid.loginkit.EstLoginConfiguration
 import com.kakao.sdk.common.KakaoSdk
 import com.navercorp.nid.NidOAuth
@@ -29,8 +28,6 @@ internal class SocialLoginInitializer(
   private val context: Context,
   private val config: EstLoginConfiguration,
 ) {
-  private val logTag = "SocialLoginInitializer"
-
   @Volatile
   private var initialized = false
 
@@ -56,7 +53,7 @@ internal class SocialLoginInitializer(
           callback = object : NidOAuthInitializingCallback {
             override fun onSuccess() = Unit
             override fun onFailure(exception: Exception) {
-              Log.e(logTag, "Failed to initialize Naver OAuth", exception)
+              EstLog.error("Failed to initialize Naver OAuth", exception)
             }
           },
         )

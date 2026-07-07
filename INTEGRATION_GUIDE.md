@@ -2,31 +2,30 @@
 
 ## 1. 의존성 추가
 
-### 전환기 (현재) — 로컬 경로 / includeBuild
+### 전환기 (현재) — composite build (`includeBuild`)
 
-ZUM 앱 등 호스트 레포에서 이 레포를 형제 디렉터리로 두고 참조합니다.
+이 레포는 **자체 버전 카탈로그**(`gradle/libs.versions.toml`)를 쓰므로, `projectDir` 로 include 하면
+호스트의 카탈로그와 alias 가 충돌합니다. 따라서 **composite build + 명시적 substitution** 으로 소비합니다.
 
 ```kotlin
-// 호스트 settings.gradle.kts
-include(":estloginkit")
-project(":estloginkit").projectDir = file("../ESTLoginKit-Android/estloginkit")
-
-dependencyResolutionManagement {
-  repositories {
-    maven("https://devrepo.kakao.com/nexus/content/groups/public/") // 카카오
-    maven("https://jitpack.io")
-  }
+// 호스트 settings.gradle.kts (top-level)
+includeBuild("<이 레포까지의 상대경로>/ESTLoginKit-Android") {
+    dependencySubstitution {
+        substitute(module("com.estaid:loginkit")).using(project(":estloginkit"))
+    }
 }
 ```
 
 ```kotlin
 // 호스트 app/build.gradle.kts
 dependencies {
-  implementation(project(":estloginkit"))
+    implementation("com.estaid:loginkit:2.0.0") // 위 substitution 으로 로컬 :estloginkit 로 치환됨
 }
 ```
 
-> 전환기에는 호스트가 로컬 경로로 직접 참조하므로 SDK 수정이 즉시 반영됩니다. 안정화 후 Maven 아티팩트로 전환하세요.
+> 실제 적용 예 (Android-ZUM 레포에서): `includeBuild("../../ESTLoginKit/ESTLoginKit-Android")`.
+> composite build 라 자체 카탈로그가 격리되고, SDK 수정이 즉시 반영됩니다. 안정화 후 Maven 아티팩트로 전환하세요.
+> 카카오/jitpack 등 SDK 저장소는 이 레포의 `settings.gradle.kts` 가 자체적으로 선언하므로 호스트는 추가할 필요가 없습니다.
 
 ### 안정화 후 — Maven 아티팩트
 
@@ -72,8 +71,8 @@ class MyApp : Application() {
     EstLoginManager.initialize(
       context = this,
       config = EstLoginConfiguration.Builder(clientId = "발급받은_클라이언트_ID")
-        .useBaseUrl("https://estoneid.com")
-        .useCallbackUrl("https://estoneid.com/auth/app-callback") // 미지정 시 baseUrl 로 자동 구성
+        .useEnvironment(EstEnvironment.PRODUCTION) // 기본값: PRODUCTION (개발: DEVELOPMENT)
+        .useCallbackUrl("https://estoneid.com/auth/app-callback") // 미지정 시 환경 웹 baseUrl 로 자동 구성
         .useKakao(KakaoConfiguration(appKey = "발급받은_카카오_네이티브_앱_키"))
         .useNaver(
           NaverConfiguration(
@@ -95,7 +94,7 @@ class MyApp : Application() {
 | 메서드 | 기본값 | 설명 |
 |---|---|---|
 | `Builder(clientId)` | (필수) | 클라이언트 ID |
-| `useBaseUrl(url)` | `https://estoneid.com` | 지정 시 `loginUrl()`/`mypageUrl`/AUTH_API 자동 구성 |
+| `useEnvironment(env)` | `EstEnvironment.PRODUCTION` | 웹·API base URL 을 환경이 쌍으로 결정(`loginUrl()`/`mypageUrl`/API host) |
 | `useCallbackUrl(url)` | `{baseUrl}/auth/app-callback` | WebView 로그인 완료 감지(prefix + `code` 쿼리) |
 | `useKakao(config)` | null | 카카오 설정 |
 | `useNaver(config)` | null | 네이버 설정 |
@@ -112,11 +111,14 @@ class MyApp : Application() {
 
 ### 웹 → 네이티브
 
+JS 브릿지 객체 이름은 `AndroidInterface` 입니다.
+
 ```javascript
 AndroidInterface.requestSnsLogin(JSON.stringify({ type: "sns-login", provider: "kakao" }));
 // provider: "kakao" | "naver" | "google" | "apple"
-AndroidInterface.onPasswordChanged();
-AndroidInterface.onAccountDeleted();
+AndroidInterface.onLoginComplete(message);  // 로그인 완료 통지(관찰/로깅용). 실제 ssoToken 회수·dismiss 는 callbackUrl 매칭으로 처리됨
+AndroidInterface.onPasswordChanged();       // 마이페이지 비밀번호 변경 통지
+AndroidInterface.onAccountDeleted();        // 마이페이지 회원 탈퇴 통지
 ```
 
 ### 네이티브 → 웹
@@ -139,11 +141,13 @@ window.onNativeSnsLoginError = function (error) {
 - `EstLoginManager.logout()` 은 네이티브 토큰 + WebView 세션 데이터(쿠키/localStorage)를 정리합니다.
   서비스 도메인 고유의 세션 유지 정책(예: 정책 페이지 keepalive)이 필요하면 호스트에서 구현하세요.
 
-## 6. ZUM 결합 제거 노트 (iOS 정합)
+## 6. 무결합(stateless) 설계 노트
 
-iOS 원본과 달리 구버전 Android 모듈(`com.estaid.auth`)에 있던 ZUM 결합은 이 레포에서 제거되었습니다.
+이 SDK 는 특정 서비스(ZUM 등)에 결합되지 않은 stateless 설계입니다. 구버전 Android 모듈
+(`com.estaid.auth`)에 있던 서비스 결합 요소는 모두 제거되었으며, 호스트 앱은 어떤 서비스에서도
+동일하게 통합할 수 있습니다.
 
-- ❌ `Accept: application/vnd.zum.resource-…` 헤더 → 제거 (stateless, Bearer 만 사용)
-- ❌ JWT 서명(`jwtVendor/Issuer="ZUM"`) → 제거 (토큰 비보관)
-- ❌ WebView Google UA 우회의 `sign.zum.com` 도메인 → 일반 `accounts.google.com` 만 감지
-- ❌ REST `checkLogin`/`logout` → 제거 (로그아웃은 네이티브 토큰 + 세션 정리)
+- 네트워크 호출은 표준 `Bearer` 토큰만 사용합니다. (`Accept: application/vnd.zum.resource-…` 같은 서비스 전용 헤더 없음)
+- SDK 는 토큰을 보관하거나 서명하지 않습니다. (서비스 전용 JWT vendor/issuer 없음)
+- WebView 의 구글 로그인 UA 처리는 일반 `accounts.google.com` 만 감지합니다. (서비스 전용 도메인 우회 없음)
+- 로그아웃은 REST `checkLogin`/`logout` 호출 없이, 네이티브 SDK 토큰 + WebView 세션 데이터 정리로만 동작합니다.

@@ -19,12 +19,12 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.lifecycleScope
 import com.estaid.loginkit.EstLoginManager
+import com.estaid.loginkit.internal.EstLog
 import com.estaid.loginkit.internal.dto.SnsLoginBridge
 import com.estaid.loginkit.model.AuthError
 import com.estaid.loginkit.model.LoginPlatform
@@ -46,7 +46,6 @@ internal class EstOneWebViewActivity : ComponentActivity() {
     const val EXTRA_INSPECTABLE = "extra_inspectable"
     const val EXTRA_DEBUG_MODE = "extra_debug_mode"
     const val RESULT_SSO_TOKEN = "result_sso_token"
-    private const val TAG = "EstOneWebViewActivity"
 
     fun createIntent(
       context: Context,
@@ -70,7 +69,7 @@ internal class EstOneWebViewActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
 
     val loginUrl = intent.getStringExtra(EXTRA_LOGIN_URL) ?: run {
-      Log.e(TAG, "Login URL not provided")
+      EstLog.error("Login URL not provided")
       setResult(Activity.RESULT_CANCELED)
       finish()
       return
@@ -111,7 +110,7 @@ internal class EstOneWebViewActivity : ComponentActivity() {
 
   private fun handleSnsLoginRequest(message: String) {
     val parsed = SnsLoginBridge.parseRequest(message).getOrElse {
-      Log.e(TAG, "Failed to parse SNS login request", it)
+      EstLog.error("Failed to parse SNS login request", it)
       return
     }
     val platform = LoginPlatform.from(parsed.provider)
