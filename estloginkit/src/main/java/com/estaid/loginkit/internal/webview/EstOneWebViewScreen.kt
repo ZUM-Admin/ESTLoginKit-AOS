@@ -154,6 +154,9 @@ private class EstWebViewClient(
   private val onLoginCompleted: (String) -> Unit,
 ) : WebViewClient() {
 
+  /** callbackUrl 리다이렉트 체인에서 회수한 최신 ssoToken. 재발급될 수 있어 첫 값에 고정하지 않는다. */
+  private var latestSsoToken: String? = null
+
   override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
     super.onPageStarted(view, url, favicon)
     onLoadingChange(true)
@@ -185,18 +188,26 @@ private class EstWebViewClient(
       view.settings.userAgentString = buildAndroidChromeUserAgent(extraUserAgent)
     }
 
-    // callbackUrl prefix + code 쿼리 매칭 → ssoToken 추출 후 완료
+    // callbackUrl prefix + code 쿼리 매칭 → ssoToken 회수 (iOS 패리티)
     if (!callbackUrl.isNullOrBlank() && url.startsWith(callbackUrl)) {
       val ssoToken = runCatching { Uri.parse(url).getQueryParameter("code") }.getOrNull()
       if (!ssoToken.isNullOrBlank()) {
-        onLoginCompleted(ssoToken)
-        return true
+        latestSsoToken = ssoToken
+        if (initialState.isNullOrBlank()) {
+          // state 미사용 흐름: callbackUrl 자체가 종착지 — 즉시 완료.
+          onLoginCompleted(ssoToken)
+          return true
+        }
+        // state 흐름: callbackUrl 은 서비스 세션(쿠키)을 발급하는 중간 리다이렉트다.
+        // 여기서 끊으면 세션이 성립되지 않으므로 네비게이션을 통과시키고
+        // state 착지에서 완료를 판정한다.
+        return false
       }
     }
 
-    // state URL prefix 매칭 → ssoToken 없이 완료 통지
+    // state URL prefix 매칭 → 로그인 완료 판정 (이 시점에 세션 쿠키 커밋 보장)
     if (!initialState.isNullOrBlank() && url.startsWith(initialState)) {
-      onLoginCompleted("")
+      onLoginCompleted(latestSsoToken.orEmpty())
       return false
     }
 

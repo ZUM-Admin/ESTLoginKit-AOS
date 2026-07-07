@@ -95,7 +95,7 @@ class MyApp : Application() {
 |---|---|---|
 | `Builder(clientId)` | (필수) | 클라이언트 ID |
 | `useEnvironment(env)` | `EstEnvironment.PRODUCTION` | 웹·API base URL 을 환경이 쌍으로 결정(`loginUrl()`/`mypageUrl`/API host) |
-| `useCallbackUrl(url)` | `{baseUrl}/auth/app-callback` | WebView 로그인 완료 감지(prefix + `code` 쿼리) |
+| `useCallbackUrl(url)` | `{baseUrl}/auth/app-callback` | ssoToken(`code` 쿼리) 회수 지점. 로그인 URL 에 `state` 가 없으면 매칭 즉시 완료, 있으면 통과 후 `state` 착지 시 완료 (README §웹뷰 로그인 상세) |
 | `useKakao(config)` | null | 카카오 설정 |
 | `useNaver(config)` | null | 네이버 설정 |
 | `useExtraUserAgent(s)` | null | SDK WebView UA 뒤 append |
