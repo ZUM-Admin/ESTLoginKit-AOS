@@ -20,7 +20,7 @@
 | **로그인 URL 빌더** (`loginUrl`, `silent`) | 본인인증을 **언제 띄울지(정책)** |
 | **마이페이지 화면** + 계정 이벤트 통지 콜백 | 화면 표시/종료(dismiss) |
 | **로그아웃** (네이티브 SDK 토큰 + WebView 세션 데이터 정리) | 로그인 결과 후속 처리(서버 통신 등) |
-| **본인인증 여부 조회 API** (스펙 일부 미정) | |
+| **본인인증 화면** + **인증 여부 조회 API** | |
 
 ## 요구사항
 
@@ -198,9 +198,9 @@ try {
 }
 ```
 
-> **조회 API는 확정**입니다 — `GET /members/v1/certification/status` (Bearer 토큰), 응답
-> `status` 가 `CERTIFIED`(완료) / `UNCERTIFIED`(미인증·미존재). 본인인증 **화면**(URL·완료 콜백 방식)은
-> 아직 (미정)입니다. 화면을 포함한 전체 흐름은 아래 [본인인증 (Identity Verification)](#본인인증-identity-verification) 섹션을 참고하세요.
+> 조회 API — `GET /members/v1/certification/status` (Bearer 토큰), 응답 `status` 가
+> `CERTIFIED`(완료) / `UNCERTIFIED`(미인증·미존재). 본인인증 **화면**과 완료 통지 방식은 확정·구현되어
+> 있습니다. 화면을 포함한 전체 흐름은 아래 [본인인증 (Identity Verification)](#본인인증-identity-verification) 섹션을 참고하세요.
 
 ## 웹뷰 로그인 상세
 
@@ -271,9 +271,8 @@ fun EstLoginWebView(
 본인인증은 로그인/회원가입과 **완전히 분리**되어 있습니다. 앱은 (1) 인증 여부를 조회하고,
 (2) 필요할 때 본인인증 화면을 직접 띄웁니다.
 
-> **상태 조회 API는 확정**되어 구현돼 있습니다(`GET /members/v1/certification/status`). 본인인증
-> **화면 컴포넌트**(화면 URL / 완료 콜백 방식 / 결과 필드)는 아직 `(미정)` 이며 스펙 확정 후 제공
-> 예정입니다. 아래 §2 화면 API 시그니처는 iOS 버전과 대칭으로 미리 적어둔 placeholder 이며 바뀔 수 있습니다.
+> 상태 조회 API와 본인인증 **화면 컴포넌트**(화면 URL / 완료 통지 방식 / 결과 필드)는 모두
+> 확정·구현되어 있습니다. 다만 `VerificationResult` 에 `ci`/`di` 등 추가 필드를 넣을지는 아직 정해지지 않았습니다.
 
 ### 책임 분리 — 상태(fact) vs 정책(policy)
 
@@ -314,37 +313,57 @@ Authorization: Bearer {accessToken}
 > 인증 상태는 **통합회원 계정 단위**로 관리되어 모든 계열사에서 동일하게 조회됩니다. `status` 가
 > `CERTIFIED` 이면 `isVerified == true` 입니다.
 
-### 2. 본인인증 화면 (미정 — 제공 예정)
+### 2. 본인인증 화면 — `EstIdentityVerificationWebView`
 
-화면 콘텐츠는 SDK가 제공하고, **띄우기는 호스트**가 합니다. Compose / Activity 두 진입점을 제공할 예정입니다.
+화면 콘텐츠와 완료 통지 수신은 SDK가 담당하고, **언제 띄울지(정책)와 화면을 감싸 present/dismiss
+하는 것은 호스트**가 합니다. iOS `IdentityVerificationView` / `IdentityVerificationViewController` 와 대칭이며,
+Compose 컴포저블 하나로 두 쓰임(선언형 표시 · Activity 호스팅)을 모두 커버합니다.
 
 ```kotlin
-// 본인인증 화면 완료 결과 (ci/di 등 추가 필드는 미정)
+// 본인인증 화면 완료 결과 (token = 본인인증 후 재발급된 ssoToken)
 data class VerificationResult(
   val token: String,
 )
 
-// Compose — url 기본값은 verificationUrl() (미정)
 @Composable
 fun EstIdentityVerificationWebView(
-  url: String = EstLoginManager.verificationUrl(),   // (미정)
-  callbackUrl: String? = null,                        // 완료 콜백 방식(jsBridge / callbackUrl code) (미정)
+  url: String? = null,          // 생략 시 verificationUrl(callbackUrl) 로 구성
+  callbackUrl: String? = null,  // 브릿지 미등록 시 리다이렉트될 앱 콜백 URL (선택)
+  extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
+  inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
   onBackPressed: () -> Unit = {},
-  onResult: (Result<VerificationResult>) -> Unit,     // 성공 시 VerificationResult, 취소 시 AuthError.Cancelled
+  onResult: (Result<VerificationResult>) -> Unit,
 )
-
-// Activity 기반 (startWebLogin 과 동일 패턴) — (미정)
-suspend fun EstLoginManager.startIdentityVerification(
-  activity: ComponentActivity,
-): Result<VerificationResult>
 ```
 
-> 본인인증 **화면 URL(`verificationUrl()`)과 완료 콜백 회수 방식**(jsBridge `onLoginComplete` 류 vs
-> `callbackUrl` 의 `code` 가로채기)은 아직 (미정)입니다. WebView 인프라(`EstOneWebViewScreen`,
-> JS 브릿지 `AndroidInterface`, `callbackUrl` 매칭)는 이미 갖춰져 있어, 스펙 확정 시 위 컴포넌트는
-> 그 위에 얇게 추가됩니다.
+화면 URL은 `EstLoginManager.verificationUrl(callbackUrl)` 로 생성됩니다.
 
-### 3. 전체 흐름 — "필요한 시점에 본인인증" (Compose, 미정 API 기준)
+```
+{baseUrl}/webview/verification?callbackURL=<앱 콜백 URL, URL인코딩>
+```
+
+로그인 세션 쿠키(프로세스 전역 `CookieManager`)를 공유하므로 임시 회원 세션이 그대로 전달되며,
+인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리합니다.
+
+**완료 통지는 ① 브릿지 → ② (브릿지 미등록 시) `callbackUrl` 리다이렉트 순으로 실행되며, SDK가 둘 다
+처리합니다.** 호스트는 `onResult` 만 구현하면 되고, 두 경로가 모두 도착해도 결과는 **한 번만** 전달됩니다.
+
+| 경로 | 형태 |
+|------|------|
+| 브릿지 | `window.AndroidInterface.onVerificationComplete(jsonString)` — 로그인용 `onLoginComplete` 와 분리된 별도 메서드 |
+| 페이로드 | `{ "status": "certified" \| "cancelled" \| "error", "token": "<ssoToken, certified일 때만>" }` |
+| callbackUrl | `<callbackUrl>?status=certified\|cancelled\|error&code=<ssoToken>` |
+
+| `status` | 의미 | `onResult` |
+|----------|------|------------|
+| `certified` | 승격 완료 (CI 충돌 시 계정 병합까지 완료) | `Result.success(VerificationResult)` |
+| `cancelled` | 사용자가 본인인증 취소/중단 | `Result.failure(AuthError.Cancelled)` |
+| `error` | 승격 실패, 병합 실패, cert 조회 실패 등 | `Result.failure(AuthError.VerificationFailed)` |
+
+> ⚠️ **CI 충돌로 계정이 병합되면 웹뷰 안의 세션이 다른 계정으로 바뀌어 있을 수 있습니다.**
+> `certified` 수신 시 호스트는 전달받은 `token`(ssoToken)으로 **세션을 재수립**해야 병합된 계정과 상태가 맞습니다.
+
+### 3. 전체 흐름 — "필요한 시점에 본인인증"
 
 본인인증이 필요한 시점(예: 결제 진입)에서 앱이 상태를 확인하고, 미인증이면 화면을 띄웁니다.
 
@@ -365,7 +384,7 @@ fun CheckoutButton(myAccessToken: String) {
   }) { Text("결제하기") }
 
   if (showVerification) {
-    EstIdentityVerificationWebView(           // (미정)
+    EstIdentityVerificationWebView(
       onBackPressed = { showVerification = false },
       onResult = { result ->
         showVerification = false
@@ -383,11 +402,13 @@ fun CheckoutButton(myAccessToken: String) {
 | 항목 | 동작 |
 |------|------|
 | 본인인증 트리거(언제 띄울지) | **호스트** (결제 직전 등 비즈니스 시점) |
-| 인증 여부 조회 | `verificationStatus(accessToken)` (SDK, 구현됨) |
-| 인증 화면 제공 | `EstIdentityVerificationWebView` / `startIdentityVerification` (SDK, 미정) |
+| 인증 여부 조회 | `verificationStatus(accessToken)` (SDK) |
+| 인증 화면 제공 | `EstIdentityVerificationWebView` (SDK) |
 | 화면 띄우기/닫기 | **호스트** |
 | 토큰 | **호스트가 주입** (SDK 미보관) |
+| 완료 통지 수신 | **SDK** (브릿지 + callbackUrl 둘 다 처리, 결과는 1회만 전달) |
 | 결과 | `Result<VerificationResult>` |
+| `certified` 후속 처리 | **호스트** (재발급된 ssoToken 으로 세션 재수립) |
 
 ## 에러 처리
 
@@ -398,6 +419,7 @@ sealed class AuthError : Exception() {
   data object UnsupportedPlatform   // 미지원 플랫폼 (카카오/네이버 외)
   data object Cancelled             // 사용자 취소
   data object NotInitialized        // initialize(...) 미호출
+  data object VerificationFailed    // 본인인증 승격/병합 실패, 또는 완료 통지 해석 불가
   data class  Server(statusCode)    // 서버가 2xx 아닌 상태로 응답 (401 이면 갱신 후 재시도)
   data class  Unknown(error)        // 그 외 (네트워크 오류 포함, 원본 에러 wrapping)
 }
