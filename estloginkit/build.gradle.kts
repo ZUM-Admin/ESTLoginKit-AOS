@@ -59,6 +59,13 @@ android {
       withSourcesJar()
     }
   }
+
+  testOptions {
+    unitTests {
+      // 순수 JVM 유닛테스트에서 android.util.Log 호출이 예외 대신 기본값을 반환하게 한다.
+      isReturnDefaultValues = true
+    }
+  }
 }
 
 dependencies {

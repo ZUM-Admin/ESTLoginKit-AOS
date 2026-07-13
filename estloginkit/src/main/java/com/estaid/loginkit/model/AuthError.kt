@@ -21,6 +21,7 @@ package com.estaid.loginkit.model
  * - [UnsupportedPlatform] : 지원하지 않는 로그인 플랫폼
  * - [Cancelled] : 사용자 취소
  * - [NotInitialized] : `initialize(...)` 미호출 — 설정(환경/clientId)이 없음
+ * - [VerificationFailed] : 본인인증 승격/병합 실패, 또는 완료 통지를 해석할 수 없음
  * - [Server] : 서버가 2xx 가 아닌 상태 코드로 응답 (`statusCode == 401` 이면 토큰 갱신 후 재시도)
  * - [Unknown] : 그 외 (네트워크 오류 포함, 원본 에러 wrapping)
  */
@@ -33,6 +34,8 @@ sealed class AuthError(
   data object Cancelled : AuthError("Login was cancelled")
 
   data object NotInitialized : AuthError("EstLoginManager is not initialized. Call initialize() first.")
+
+  data object VerificationFailed : AuthError("Identity verification failed")
 
   data class Server(val statusCode: Int) : AuthError("Server responded with status $statusCode")
 

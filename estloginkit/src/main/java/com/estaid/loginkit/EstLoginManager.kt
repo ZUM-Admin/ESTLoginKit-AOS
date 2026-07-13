@@ -158,8 +158,19 @@ object EstLoginManager {
   val mypageUrl: String
     get() = "${requireConfig().baseUrl}/mypage/setting"
 
-  /** 본인인증 화면 URL. (스펙 미정 — placeholder) */
-  fun verificationUrl(): String = "${requireConfig().baseUrl}/verification"
+  /**
+   * 본인인증 화면 URL. (iOS `verificationURL(callbackURL:)`)
+   *
+   * 웹뷰가 임시 회원의 로그인 세션 쿠키를 갖고 있어야 하며, 인증 회원 승격과 CI 충돌 해소는
+   * 웹뷰가 자체 처리한다. 완료 통지는 브릿지(`onVerificationComplete`) 우선이고, 브릿지가 없을
+   * 때만 [callbackUrl] 로 리다이렉트되므로 둘 중 하나만 처리하면 된다.
+   *
+   * @param callbackUrl 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. (선택)
+   */
+  fun verificationUrl(callbackUrl: String? = null): String {
+    val path = "${requireConfig().baseUrl}/webview/verification"
+    return if (callbackUrl.isNullOrBlank()) path else "$path?callbackURL=${encode(callbackUrl)}"
+  }
 
   // endregion
 

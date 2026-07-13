@@ -66,6 +66,7 @@ internal fun EstOneWebViewScreen(
   onPasswordChanged: () -> Unit,
   onAccountDeleted: () -> Unit,
   onBackPressed: () -> Unit,
+  verificationDelivery: VerificationResultDelivery? = null,
 ) {
   var isLoading by remember { mutableStateOf(true) }
   var webView by remember { mutableStateOf<WebView?>(null) }
@@ -114,6 +115,9 @@ internal fun EstOneWebViewScreen(
               onSnsLoginRequested = onSnsLoginRequested,
               onPasswordChanged = onPasswordChanged,
               onAccountDeleted = onAccountDeleted,
+              onVerificationComplete = verificationDelivery?.let { delivery ->
+                { message -> delivery.fromBridge(message) }
+              },
             ),
             "AndroidInterface",
           )
@@ -125,6 +129,7 @@ internal fun EstOneWebViewScreen(
             extraUserAgent = extraUserAgent,
             onLoadingChange = { isLoading = it },
             onLoginCompleted = onLoginCompleted,
+            verificationDelivery = verificationDelivery,
           )
           webChromeClient = EstWebChromeClient(this)
 
@@ -152,6 +157,7 @@ private class EstWebViewClient(
   private val extraUserAgent: String?,
   private val onLoadingChange: (Boolean) -> Unit,
   private val onLoginCompleted: (String) -> Unit,
+  private val verificationDelivery: VerificationResultDelivery? = null,
 ) : WebViewClient() {
 
   /** callbackUrl 리다이렉트 체인에서 회수한 최신 ssoToken. 재발급될 수 있어 첫 값에 고정하지 않는다. */
@@ -186,6 +192,17 @@ private class EstWebViewClient(
     // iOS 대칭: 일반 구글 도메인만 감지한다 (서비스별 OAuth 도메인을 하드코딩하지 않음).
     if (isGoogleLoginUrl(url)) {
       view.settings.userAgentString = buildAndroidChromeUserAgent(extraUserAgent)
+    }
+
+    // 본인인증 모드: callbackUrl 은 브릿지 미등록 시에만 여기로 리다이렉트된다
+    // (`?status=...&code=<ssoToken>`). status 를 함께 파싱해 1회만 전달한다.
+    if (verificationDelivery != null && !callbackUrl.isNullOrBlank() && url.startsWith(callbackUrl)) {
+      val uri = runCatching { Uri.parse(url) }.getOrNull()
+      verificationDelivery.fromCallback(
+        status = uri?.getQueryParameter("status"),
+        code = uri?.getQueryParameter("code"),
+      )
+      return true
     }
 
     // callbackUrl prefix + code 쿼리 매칭 → ssoToken 회수 (iOS 패리티)

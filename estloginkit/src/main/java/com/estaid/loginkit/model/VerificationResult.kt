@@ -18,6 +18,10 @@ package com.estaid.loginkit.model
 /**
  * 본인인증 화면 완료 결과. (iOS `VerificationResult` 대칭)
  *
+ * [token] 은 본인인증 후 재발급된 ssoToken 이다. CI 충돌로 계정이 병합되면 웹뷰 안의 세션이
+ * 다른 계정으로 바뀌어 있을 수 있으므로, 호스트는 이 토큰으로 세션을 재수립해야 병합된 계정과
+ * 상태가 맞는다.
+ *
  * 추가 필드(ci/di 등)는 백엔드 스펙 (미정).
  */
 data class VerificationResult(
