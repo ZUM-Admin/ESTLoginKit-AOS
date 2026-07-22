@@ -9,7 +9,12 @@
 > - 토큰 **저장 · 갱신 · 만료 처리**
 > - 로그아웃 시 **앱이 저장한 토큰 삭제**
 >
-> SDK 는 토큰을 보관하지 않으며, 토큰이 필요한 API(본인인증 조회)에는 **호출 시 호스트가 토큰을 주입**합니다.
+> SDK 는 토큰을 보관하지 않으며, 토큰이 필요한 API(본인인증 조회, SSO 부트스트랩)에는 **호출 시 호스트가 토큰을 주입**합니다.
+>
+> **토큰 저장은 평문 SharedPreferences 대신 Android Keystore 기반 암호화 저장을 권장**합니다
+> (Keystore 로 보호한 키로 암호화해 DataStore/파일에 저장). Jetpack Security 의
+> `EncryptedSharedPreferences` 는 deprecated 라 신규 적용에는 권장하지 않습니다.
+> (iOS 대응: Keychain)
 
 ## 한눈에 보기
 
