@@ -171,15 +171,27 @@ EstLoginWebView(onLoginCompleted = { ssoToken -> /* 토큰 교환은 호스트 *
 
 ### 5. 마이페이지 / 로그아웃
 
+**유효한 accessToken을 넘기는 방식을 권장**합니다 — SDK가 일회성 ssoToken 발급
+(`GET {apiBaseUrl}/auth/sso/sso-token`) → SSO 부트스트랩
+(`GET {baseUrl}/webview/sso-login?code=...&redirect_url=...`) → 마이페이지 진입까지 처리하므로,
+WebView 쿠키가 없거나 만료된 상태에서도 로그인 화면 없이 열립니다. (iOS와 동일한 방식)
+
 ```kotlin
 EstMyPageWebView(
+  accessToken = myAccessToken,          // 만료 판단·갱신은 앱 책임 — 만료면 갱신 후 전달
   onPasswordChanged = { /* silent 재발급 등 */ },
   onAccountDeleted = { /* 로그아웃 처리 */ },
   onBackPressed = { /* 화면 종료는 호스트 */ },
+  onError = { /* ssoToken 발급 실패 — 401 이면 AuthError.Server(401) */ },
 )
 
 EstLoginManager.logout()  // suspend — 네이티브 SDK 토큰 + WebView 세션 데이터 정리
 ```
+
+> - ssoToken은 **유효 60초, 1회용** — SDK가 웹뷰를 열 때마다 새로 발급하며, 저장·로그 출력하지 않습니다.
+> - 만료된 accessToken이면 `AuthError.Server(statusCode = 401)` — 앱이 refreshToken으로 갱신 후 재시도하세요.
+> - 세션 쿠키가 살아있는 경우에는 `EstMyPageWebView(url = ...)` 직접 진입도 가능합니다.
+> - URL만 필요하면(`suspend`) `EstLoginManager.authorizedMypageUrl(accessToken)` / `authorizedVerificationUrl(accessToken, callbackUrl)`.
 
 > **로그아웃은 반드시 호출하세요.** 카카오·네이버 네이티브 SDK 는 인증 토큰을 기기에 보관합니다.
 > `logout()` 은 카카오/네이버 네이티브 토큰과 WebView 세션 데이터(쿠키 + localStorage)를 정리하지만,
@@ -325,24 +337,35 @@ data class VerificationResult(
   val token: String,
 )
 
+// 권장 — SSO 부트스트랩 진입. accessToken만 넘기면 발급→세션 수립→진입까지 SDK가 처리
+// (url 오버로드와 JVM 시그니처가 겹쳐 별도 함수명)
 @Composable
-fun EstIdentityVerificationWebView(
-  url: String? = null,          // 생략 시 verificationUrl(callbackUrl) 로 구성
+fun EstIdentityVerificationWebViewWithAccessToken(
+  accessToken: String,          // 만료 판단·갱신은 앱 책임. 발급 실패는 onResult 로 failure 전달
   callbackUrl: String? = null,  // 브릿지 미등록 시 리다이렉트될 앱 콜백 URL (선택)
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
   inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
   onBackPressed: () -> Unit = {},
   onResult: (Result<VerificationResult>) -> Unit,
 )
+
+// 세션 쿠키가 살아있을 때의 URL 직접 진입
+@Composable
+fun EstIdentityVerificationWebView(
+  url: String? = null,          // 생략 시 verificationUrl(callbackUrl) 로 구성
+  callbackUrl: String? = null,
+  /* 이하 동일 */
+  onResult: (Result<VerificationResult>) -> Unit,
+)
 ```
 
-화면 URL은 `EstLoginManager.verificationUrl(callbackUrl)` 로 생성됩니다.
+accessToken 진입 시 SDK가 ssoToken을 발급해 부트스트랩 URL로 이동하므로 **쿠키가 없거나 만료돼도
+동작**합니다. 목적지 URL은 `EstLoginManager.verificationUrl(callbackUrl)` 로 생성됩니다.
 
 ```
 {baseUrl}/webview/verification?callbackURL=<앱 콜백 URL, URL인코딩>
 ```
 
-로그인 세션 쿠키(프로세스 전역 `CookieManager`)를 공유하므로 임시 회원 세션이 그대로 전달되며,
 인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리합니다.
 
 **완료 통지는 ① 브릿지 → ② (브릿지 미등록 시) `callbackUrl` 리다이렉트 순으로 실행되며, SDK가 둘 다
@@ -384,7 +407,8 @@ fun CheckoutButton(myAccessToken: String) {
   }) { Text("결제하기") }
 
   if (showVerification) {
-    EstIdentityVerificationWebView(
+    EstIdentityVerificationWebViewWithAccessToken(
+      accessToken = myAccessToken,
       onBackPressed = { showVerification = false },
       onResult = { result ->
         showVerification = false

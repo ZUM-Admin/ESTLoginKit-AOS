@@ -49,7 +49,11 @@ internal class AuthNetworkClient(
       .apply {
         if (debugMode) {
           addInterceptor(
-            HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY },
+            HttpLoggingInterceptor().apply {
+              level = HttpLoggingInterceptor.Level.BODY
+              // accessToken이 로그에 남지 않도록 마스킹 (ssoToken 발급 등 Bearer 요청)
+              redactHeader("Authorization")
+            },
           )
         }
       }

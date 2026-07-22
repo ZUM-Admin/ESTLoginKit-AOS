@@ -23,13 +23,15 @@ package com.estaid.loginkit
  */
 enum class EstEnvironment {
   PRODUCTION,
-  DEVELOPMENT;
+  DEVELOPMENT,
+  TEST;
 
   /** 로그인/마이페이지 등 웹 화면 base URL. */
   val webBaseUrl: String
     get() = when (this) {
       PRODUCTION -> "https://estoneid.com"
       DEVELOPMENT -> "https://dev.estoneid.com"
+      TEST -> "https://test.estoneid.com"
     }
 
   /** 본인인증 등 REST API base URL. */
@@ -37,5 +39,6 @@ enum class EstEnvironment {
     get() = when (this) {
       PRODUCTION -> "https://api.estoneid.com"
       DEVELOPMENT -> "https://dev-api.estoneid.com"
+      TEST -> "https://test-api.estoneid.com"
     }
 }

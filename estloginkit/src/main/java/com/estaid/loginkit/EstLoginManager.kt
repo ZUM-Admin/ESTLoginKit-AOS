@@ -23,6 +23,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import com.estaid.loginkit.internal.EstLog
 import com.estaid.loginkit.internal.SocialLoginInitializer
+import com.estaid.loginkit.internal.SsoBootstrap
 import com.estaid.loginkit.internal.network.AuthNetworkClient
 import com.estaid.loginkit.internal.webview.EstOneWebViewActivity
 import com.estaid.loginkit.model.AuthError
@@ -170,6 +171,64 @@ object EstLoginManager {
   fun verificationUrl(callbackUrl: String? = null): String {
     val path = "${requireConfig().baseUrl}/webview/verification"
     return if (callbackUrl.isNullOrBlank()) path else "$path?callbackURL=${encode(callbackUrl)}"
+  }
+
+  // endregion
+
+  // region SSO 부트스트랩 (웹뷰 세션 수립)
+
+  /**
+   * 일회성 SSO 토큰을 발급받는다. (iOS `issueSSOToken(accessToken:)` 대칭)
+   *
+   * `GET {apiBaseUrl}/auth/sso/sso-token` (`Authorization: Bearer`)
+   *
+   * SDK 는 stateless — 유효한 accessToken 을 파라미터로 받는다고 가정한다. 만료 판단·갱신은
+   * 앱 책임이며, 만료된 토큰이면 [AuthError.Server] (statusCode 401)가 던져진다. 갱신 후
+   * 재호출은 앱 몫이다.
+   *
+   * 토큰은 **유효 60초, 1회용** — 웹뷰를 여는 시점마다 새로 발급하고, 저장·로그 출력하지 않는다.
+   *
+   * @return AES256 암호화된 일회성 SSO 토큰 (유효 60초, 파싱 금지)
+   */
+  suspend fun issueSsoToken(accessToken: String): String {
+    val client = networkClient ?: throw AuthError.NotInitialized
+    return try {
+      withContext(Dispatchers.IO) {
+        client.authApiService.issueSsoToken("Bearer $accessToken").result.ssoToken
+      }
+    } catch (e: HttpException) {
+      throw AuthError.Server(statusCode = e.code())
+    } catch (e: AuthError) {
+      throw e
+    } catch (e: Exception) {
+      throw AuthError.Unknown(e)
+    }
+  }
+
+  /**
+   * 마이페이지로 이동하는 SSO 부트스트랩 URL. (iOS `authorizedMypageRequest(accessToken:)` 대칭)
+   * 웹이 code 검증 후 자체 세션을 수립하고 이동시키므로 웹뷰 쿠키가 없어도 열린다.
+   *
+   * ssoToken 은 유효 60초이므로 웹뷰를 여는 시점마다 새로 호출해야 한다.
+   * (미리 만들어 두면 만료돼 사용자가 불필요하게 로그인 화면을 보게 된다)
+   */
+  suspend fun authorizedMypageUrl(accessToken: String): String {
+    val ssoToken = issueSsoToken(accessToken)
+    return SsoBootstrap.ssoLoginUrl(
+      baseUrl = requireConfig().baseUrl,
+      redirectUrl = SsoBootstrap.redirectUrlValue(mypageUrl),
+      ssoToken = ssoToken,
+    )
+  }
+
+  /** 본인인증으로 이동하는 SSO 부트스트랩 URL. (iOS `authorizedVerificationRequest(accessToken:callbackURL:)` 대칭) */
+  suspend fun authorizedVerificationUrl(accessToken: String, callbackUrl: String? = null): String {
+    val ssoToken = issueSsoToken(accessToken)
+    return SsoBootstrap.ssoLoginUrl(
+      baseUrl = requireConfig().baseUrl,
+      redirectUrl = SsoBootstrap.redirectUrlValue(verificationUrl(callbackUrl)),
+      ssoToken = ssoToken,
+    )
   }
 
   // endregion

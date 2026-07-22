@@ -17,8 +17,19 @@ package com.estaid.loginkit.webview
 
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.remember
 import com.estaid.loginkit.EstLoginManager
 import com.estaid.loginkit.internal.dto.SnsLoginBridge
@@ -77,9 +88,56 @@ fun EstLoginWebView(
 }
 
 /**
- * 마이페이지 WebView 컴포저블. (iOS `MyPageWebView` 대칭)
+ * 마이페이지 WebView 컴포저블 — SSO 부트스트랩 진입. (iOS `MyPageWebView(accessToken:)` 대칭. 권장)
  *
- * 로그인 세션 쿠키(프로세스 전역 [android.webkit.CookieManager])를 공유하므로 별도 인증 없이 접근된다.
+ * 유효한 accessToken만 넘기면 SDK가 ssoToken 발급 → SSO 부트스트랩 → 마이페이지 진입까지
+ * 처리한다. 발급 중에는 로딩 인디케이터가 표시되고, 실패(만료 토큰 등)하면 [onError]가
+ * 호출된다(화면 닫기는 호스트 몫). 웹뷰 쿠키가 없거나 만료된 상태에서도 로그인 화면 없이 열린다.
+ *
+ * @param accessToken 앱이 보유한 유효한 accessToken. 만료 판단·갱신은 앱 책임.
+ * @param onError ssoToken 발급 실패 시 호출. 만료 토큰이면 [AuthError.Server] (statusCode 401).
+ */
+@Composable
+fun EstMyPageWebView(
+  accessToken: String,
+  extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
+  inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
+  onPasswordChanged: () -> Unit = {},
+  onAccountDeleted: () -> Unit = {},
+  onBackPressed: () -> Unit = {},
+  onError: (Throwable) -> Unit = {},
+) {
+  var resolvedUrl by remember { mutableStateOf<String?>(null) }
+
+  LaunchedEffect(accessToken) {
+    try {
+      resolvedUrl = EstLoginManager.authorizedMypageUrl(accessToken)
+    } catch (e: Exception) {
+      onError(e)
+    }
+  }
+
+  val url = resolvedUrl
+  if (url == null) {
+    BootstrapLoading()
+    return
+  }
+
+  EstMyPageWebView(
+    url = url,
+    extraUserAgent = extraUserAgent,
+    inspectable = inspectable,
+    onPasswordChanged = onPasswordChanged,
+    onAccountDeleted = onAccountDeleted,
+    onBackPressed = onBackPressed,
+  )
+}
+
+/**
+ * 마이페이지 WebView 컴포저블 — URL 직접 진입. (iOS `MyPageWebView(url:)` 대칭)
+ *
+ * 로그인 세션 쿠키(프로세스 전역 [android.webkit.CookieManager])가 살아있을 때만 접근된다.
+ * 쿠키가 없으면 로그인 화면이 뜨므로 일반적으로는 accessToken 오버로드를 사용하라.
  */
 @Composable
 fun EstMyPageWebView(
@@ -116,7 +174,59 @@ fun EstMyPageWebView(
 }
 
 /**
- * 본인인증 WebView 컴포저블. (iOS `IdentityVerificationView` / `IdentityVerificationViewController` 대칭)
+ * 본인인증 WebView 컴포저블 — SSO 부트스트랩 진입. (iOS `IdentityVerificationView(accessToken:)` 대칭. 권장)
+ *
+ * 유효한 accessToken만 넘기면 SDK가 ssoToken 발급 → SSO 부트스트랩 → 본인인증 진입까지
+ * 처리한다. 발급 중에는 로딩 인디케이터가 표시되고, 실패(만료 토큰 등)하면 [onResult]로
+ * `Result.failure`가 전달된다. 웹뷰 쿠키가 없거나 만료된 상태에서도 동작한다.
+ *
+ * @param accessToken 앱이 보유한 유효한 accessToken. 만료 판단·갱신은 앱 책임.
+ * @param callbackUrl 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. 브릿지가 우선이므로 생략해도 동작한다.
+ * @param onResult 발급 실패 시 [AuthError.Server] (statusCode 401) 등, 사용자 취소 시
+ *   [AuthError.Cancelled], 승격/병합 실패 시 [AuthError.VerificationFailed].
+ */
+// url 오버로드와 JVM 시그니처가 동일해 같은 이름 오버로드로 둘 수 없다(@Composable 은 @JvmName 을
+// 무시하므로 JVM 레벨 분리가 불가). accessToken 진입점은 별도 함수명으로 분리한다.
+@Composable
+fun EstIdentityVerificationWebViewWithAccessToken(
+  accessToken: String,
+  callbackUrl: String? = null,
+  extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
+  inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
+  onBackPressed: () -> Unit = {},
+  onResult: (Result<VerificationResult>) -> Unit,
+) {
+  var resolvedUrl by remember { mutableStateOf<String?>(null) }
+
+  LaunchedEffect(accessToken) {
+    try {
+      resolvedUrl = EstLoginManager.authorizedVerificationUrl(accessToken, callbackUrl)
+    } catch (e: Exception) {
+      onResult(Result.failure(e))
+    }
+  }
+
+  val url = resolvedUrl
+  if (url == null) {
+    BootstrapLoading()
+    return
+  }
+
+  EstIdentityVerificationWebView(
+    url = url,
+    callbackUrl = callbackUrl,
+    extraUserAgent = extraUserAgent,
+    inspectable = inspectable,
+    onBackPressed = onBackPressed,
+    onResult = onResult,
+  )
+}
+
+/**
+ * 본인인증 WebView 컴포저블 — URL 직접 진입. (iOS `IdentityVerificationView(url:)` 대칭)
+ *
+ * 세션 쿠키가 살아있을 때만 임시 회원 세션이 전달된다. 쿠키가 없으면 로그인 화면이 뜨므로
+ * 일반적으로는 accessToken 오버로드를 사용하라.
  *
  * 화면 콘텐츠와 완료 통지 수신은 SDK 가 담당하고, **언제 띄울지(정책)와 화면을 감싸 present/dismiss
  * 하는 것은 호스트**가 결정한다. 인증 여부는 [EstLoginManager.verificationStatus] 로 조회한다.
@@ -165,6 +275,18 @@ fun EstIdentityVerificationWebView(
     onBackPressed = onBackPressed,
     verificationDelivery = delivery,
   )
+}
+
+/** SSO 부트스트랩 URL 발급 동안 표시하는 로딩 화면. */
+@Composable
+private fun BootstrapLoading() {
+  Box(modifier = Modifier.fillMaxSize()) {
+    CircularProgressIndicator(
+      modifier = Modifier
+        .align(Alignment.Center)
+        .size(48.dp),
+    )
+  }
 }
 
 private fun handleSnsLogin(

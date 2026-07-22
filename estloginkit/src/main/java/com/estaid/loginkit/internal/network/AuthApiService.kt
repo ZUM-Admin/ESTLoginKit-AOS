@@ -15,40 +15,30 @@
  */
 package com.estaid.loginkit.internal.network
 
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import com.estaid.loginkit.internal.dto.CertificationStatusResponse
+import com.estaid.loginkit.internal.dto.SsoTokenResponse
 import retrofit2.http.GET
 import retrofit2.http.Header
 
 /**
- * 회원 본인인증 상태 조회 API.
+ * 통합회원 REST API.
  *
  * SDK 는 stateless 이므로 토큰을 보관하지 않는다 — accessToken 은 호출 시 호스트가 주입하며
  * `Authorization: Bearer {accessToken}` 헤더로 전달된다.
  *
  * 경로는 host 루트 기준(선행 `/`)이므로 `apiBaseUrl`(예: `https://api.estoneid.com`)의
- * `{scheme}://{host}/members/v1/certification/status` 로 해석된다.
+ * `{scheme}://{host}/...` 로 해석된다.
  */
 internal interface AuthApiService {
+  /** 회원 본인인증 상태 조회. */
   @GET("/members/v1/certification/status")
   suspend fun verificationStatus(
     @Header("Authorization") authorization: String,
   ): CertificationStatusResponse
+
+  /** 일회성 SSO 토큰 발급 (유효 60초) — 웹뷰 세션 부트스트랩용. */
+  @GET("/auth/sso/sso-token")
+  suspend fun issueSsoToken(
+    @Header("Authorization") authorization: String,
+  ): SsoTokenResponse
 }
-
-/**
- * 공통 응답: `{ "result": { "status": "CERTIFIED" | "UNCERTIFIED" }, "message": "" }`
- *
- * - `CERTIFIED`   : 본인인증을 완료한 회원
- * - `UNCERTIFIED` : 미인증 회원이거나 존재하지 않는 회원
- */
-@Serializable
-internal data class CertificationStatusResponse(
-  @SerialName("result") val result: CertificationStatusResult = CertificationStatusResult(),
-  @SerialName("message") val message: String = "",
-)
-
-@Serializable
-internal data class CertificationStatusResult(
-  @SerialName("status") val status: String = "UNCERTIFIED",
-)
