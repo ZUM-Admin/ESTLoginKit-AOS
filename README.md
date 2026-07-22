@@ -199,7 +199,8 @@ EstLoginManager.logout()  // suspend — 네이티브 SDK 토큰 + WebView 세�
 > - URL만 필요하면(`suspend`) `EstLoginManager.authorizedMypageUrl(accessToken)` / `authorizedVerificationUrl(accessToken, callbackUrl)`.
 
 > **로그아웃은 반드시 호출하세요.** 카카오·네이버 네이티브 SDK 는 인증 토큰을 기기에 보관합니다.
-> `logout()` 은 카카오/네이버 네이티브 토큰과 WebView 세션 데이터(쿠키 + localStorage)를 정리하지만,
+> `logout()` 은 카카오/네이버 네이티브 토큰과 **estoneid.com 도메인의** WebView 세션 데이터(쿠키 + localStorage)를
+> 정리합니다. 호스트 앱의 다른 웹뷰 세션은 건드리지 않습니다(iOS 대칭).
 > **호스트 앱이 직접 저장한 accessToken/refreshToken 은 SDK 가 보관하지 않으므로 호스트가 직접 삭제**해야 합니다.
 
 ### 6. 본인인증 여부 조회
