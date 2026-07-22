@@ -24,7 +24,7 @@
 | **WebView 로그인 화면** (구글·애플 포함) + ssoToken 회수 | 토큰 **저장·갱신·만료** 처리 |
 | **로그인 URL 빌더** (`loginUrl`, `silent`) | 본인인증을 **언제 띄울지(정책)** |
 | **마이페이지 화면** + 계정 이벤트 통지 콜백 | 화면 표시/종료(dismiss) |
-| **로그아웃** (네이티브 SDK 토큰 + WebView 세션 데이터 정리) | 로그인 결과 후속 처리(서버 통신 등) |
+| **로그아웃** (네이티브 SDK 토큰 정리) | 로그인 결과 후속 처리(서버 통신 등) |
 | **본인인증 화면** + **인증 여부 조회 API** | |
 
 ## 요구사항
@@ -190,7 +190,7 @@ EstMyPageWebView(
   onError = { /* ssoToken 발급 실패 — 401 이면 AuthError.Server(401) */ },
 )
 
-EstLoginManager.logout()  // suspend — 네이티브 SDK 토큰 + WebView 세션 데이터 정리
+EstLoginManager.logout()  // suspend — 카카오/네이버 네이티브 SDK 토큰 정리
 ```
 
 > - ssoToken은 **유효 60초, 1회용** — SDK가 웹뷰를 열 때마다 새로 발급하며, 저장·로그 출력하지 않습니다.
@@ -199,8 +199,9 @@ EstLoginManager.logout()  // suspend — 네이티브 SDK 토큰 + WebView 세�
 > - URL만 필요하면(`suspend`) `EstLoginManager.authorizedMypageUrl(accessToken)` / `authorizedVerificationUrl(accessToken, callbackUrl)`.
 
 > **로그아웃은 반드시 호출하세요.** 카카오·네이버 네이티브 SDK 는 인증 토큰을 기기에 보관합니다.
-> `logout()` 은 카카오/네이버 네이티브 토큰과 **estoneid.com 도메인의** WebView 세션 데이터(쿠키 + localStorage)를
-> 정리합니다. 호스트 앱의 다른 웹뷰 세션은 건드리지 않습니다(iOS 대칭).
+> `logout()` 은 카카오/네이버 네이티브 토큰만 정리합니다. **웹 세션(쿠키/스토리지)은 SDK 가
+> 건드리지 않습니다** — est 웹뷰는 열 때마다 accessToken 부트스트랩으로 세션을 새로 검증·수립하므로
+> 앱 로그아웃 시 로컬 웹 데이터를 지울 필요가 없습니다(iOS 대칭).
 > **호스트 앱이 직접 저장한 accessToken/refreshToken 은 SDK 가 보관하지 않으므로 호스트가 직접 삭제**해야 합니다.
 
 ### 6. 본인인증 여부 조회

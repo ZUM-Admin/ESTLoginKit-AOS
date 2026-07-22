@@ -17,8 +17,6 @@ package com.estaid.loginkit
 
 import android.app.Activity
 import android.content.Context
-import android.webkit.CookieManager
-import android.webkit.WebStorage
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import com.estaid.loginkit.internal.EstLog
@@ -238,16 +236,18 @@ object EstLoginManager {
   /**
    * 로그아웃 — best-effort. (iOS `logout()`)
    *
-   * 네이버/카카오 네이티브 토큰 삭제와 estoneid.com 도메인의 WebView 세션 데이터
-   * (쿠키 + localStorage 등) 삭제를 각각 독립적으로 수행한다. 호스트 앱의 다른 웹뷰
-   * 세션은 건드리지 않는다(iOS `clearWebSession` 대칭). 호스트가 직접 저장한
-   * accessToken/refreshToken 은 SDK 가 보관하지 않으므로 호스트가 직접 삭제해야 한다.
+   * 네이버/카카오 네이티브 토큰을 각각 독립적으로 삭제한다.
+   *
+   * 웹 세션(쿠키/스토리지)은 SDK 가 건드리지 않는다 — 웹 세션은 웹이 소유하며,
+   * est 웹뷰는 열 때마다 accessToken 부트스트랩으로 세션을 새로 검증·수립하므로
+   * 앱 로그아웃 시 로컬 웹 데이터를 지울 필요가 없다.
+   * 호스트가 직접 저장한 accessToken/refreshToken 은 SDK 가 보관하지 않으므로
+   * 호스트가 직접 삭제해야 한다.
    */
   suspend fun logout() {
     val cfg = config ?: return
     if (cfg.kakaoConfig != null) runCatching { kakaoLogout() }.onFailure { EstLog.error("Kakao logout failed", it) }
     if (cfg.naverConfig != null) runCatching { naverLogout() }.onFailure { EstLog.error("Naver logout failed", it) }
-    clearWebSession()
   }
 
   private suspend fun kakaoLogout(): Unit = suspendCancellableCoroutine { continuation ->
@@ -268,58 +268,6 @@ object EstLoginManager {
         if (continuation.isActive) continuation.resume(Unit)
       }
     })
-  }
-
-  /**
-   * estoneid.com 도메인의 웹 세션 데이터만 제거한다. (iOS `clearWebSession` 대칭)
-   *
-   * 전체 삭제([CookieManager.removeAllCookies] / [WebStorage.deleteAllData])는 호스트 앱이
-   * 쓰는 다른 웹뷰 세션까지 날리므로 쓰지 않는다. Android 에는 도메인 단위 쿠키 삭제 API 가
-   * 없어서 각 쿠키를 만료일 과거로 덮어쓰는 방식으로 제거한다.
-   */
-  private suspend fun clearWebSession() = withContext(Dispatchers.Main) {
-    runCatching { clearEstoneidCookies() }
-      .onFailure { EstLog.error("clearWebSession(cookies) failed", it) }
-    runCatching { clearEstoneidWebStorage() }
-      .onFailure { EstLog.error("clearWebSession(storage) failed", it) }
-    Unit
-  }
-
-  private fun clearEstoneidCookies() {
-    val cookieManager = CookieManager.getInstance()
-    EstEnvironment.entries.forEach { env ->
-      val url = env.webBaseUrl
-      val cookies = cookieManager.getCookie(url) ?: return@forEach
-      cookies.split(";").forEach { pair ->
-        val name = pair.substringBefore("=").trim()
-        if (name.isNotEmpty()) {
-          // host 쿠키와 .estoneid.com 도메인 쿠키가 다르게 저장될 수 있어 둘 다 만료시킨다
-          cookieManager.setCookie(url, "$name=; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/")
-          cookieManager.setCookie(
-            url,
-            "$name=; Domain=.$ESTONEID_ROOT_DOMAIN; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Path=/",
-          )
-        }
-      }
-    }
-    cookieManager.flush()
-  }
-
-  /** localStorage / sessionStorage / IndexedDB 등 — origin 단위로 estoneid 만 삭제한다. */
-  private suspend fun clearEstoneidWebStorage(): Unit = suspendCancellableCoroutine { continuation ->
-    val storage = WebStorage.getInstance()
-    storage.getOrigins { origins ->
-      runCatching {
-        origins?.keys
-          ?.filterIsInstance<String>()
-          ?.filter { it.contains(ESTONEID_ROOT_DOMAIN) }
-          ?.forEach { origin ->
-            EstLog.debug("clearWebSession — deleting storage origin: $origin")
-            storage.deleteOrigin(origin)
-          }
-      }.onFailure { EstLog.error("clearEstoneidWebStorage failed", it) }
-      if (continuation.isActive) continuation.resume(Unit)
-    }
   }
 
   // endregion
@@ -356,9 +304,6 @@ object EstLoginManager {
   }
 
   // endregion
-
-  /** 로그아웃 시 웹 세션 정리 대상 도메인. 호스트 앱의 다른 웹뷰 세션은 건드리지 않는다. */
-  private const val ESTONEID_ROOT_DOMAIN = "estoneid.com"
 
   private fun requireConfig(): EstLoginConfiguration =
     config ?: throw AuthError.NotInitialized
