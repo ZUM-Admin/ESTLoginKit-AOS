@@ -41,13 +41,15 @@ val kakaoAppKey = exampleProp("estloginkit.kakaoAppKey")
 val naverClientId = exampleProp("estloginkit.naverClientId")
 val naverClientSecret = exampleProp("estloginkit.naverClientSecret")
 val naverAppName = exampleProp("estloginkit.naverAppName", "EST")
+// applicationId. 카카오/네이버/est 콘솔에 등록된 패키지명과 일치해야 함. 실제 값은 local.properties 에.
+val estApplicationId = exampleProp("estloginkit.applicationId", "com.estaid.loginkit.example")
 
 android {
   namespace = "com.estaid.loginkit.example"
   compileSdk = (project.property("compileSdk") as String).toInt()
 
   defaultConfig {
-    applicationId = "com.estaid.loginkit.example"
+    applicationId = estApplicationId
     minSdk = (project.property("minSdk") as String).toInt()
     targetSdk = (project.property("targetSdk") as String).toInt()
     versionCode = 1
