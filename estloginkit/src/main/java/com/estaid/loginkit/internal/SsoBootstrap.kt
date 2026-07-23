@@ -21,7 +21,7 @@ import java.net.URLEncoder
 /**
  * SSO 부트스트랩 URL 빌더. (iOS `SSOToken.swift`의 `ssoLoginURL` 대칭)
  *
- * `GET {baseUrl}/webview/sso-login?code={ssoToken}&redirect_url={URL인코딩된 내부 경로}`
+ * `GET {baseUrl}/auth/sso-login?code={ssoToken}&redirect_url={URL인코딩된 내부 경로}`
  *
  * 웹은 code를 검증해 자체 세션 쿠키를 수립한 뒤 redirect_url로 이동시키므로,
  * 쿠키가 없는 기기/상태에서도 마이페이지·본인인증 웹뷰를 열 수 있다.
@@ -43,11 +43,11 @@ internal object SsoBootstrap {
         append("&redirect_url=").append(queryEncoded(redirectUrl))
       }
     }
-    return "$baseUrl/webview/sso-login?$query"
+    return "$baseUrl/auth/sso-login?$query"
   }
 
   /**
-   * 목적지 URL에서 redirect_url 값(path + query)을 추출한다. 예: `/webview/verification?client_id=1`
+   * 목적지 URL에서 redirect_url 값(path + query)을 추출한다. 예: `/auth/verification?client_id=1`
    *
    * 디코딩된 path/query를 쓴다 — `verificationUrl()`이 callbackURL을 이미 인코딩해 두므로,
    * 인코딩된 형태를 그대로 다시 인코딩하면 이중 인코딩이 된다(가이드는 "1회 인코딩").

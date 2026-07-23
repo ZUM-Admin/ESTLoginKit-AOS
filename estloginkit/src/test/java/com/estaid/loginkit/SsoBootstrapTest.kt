@@ -27,25 +27,25 @@ class SsoBootstrapTest {
   @Test
   fun `GET sso-login에 code와 redirect_url 쿼리가 담긴다`() {
     val url = SsoBootstrap.ssoLoginUrl(base, redirectUrl = "/mypage/setting", ssoToken = "abc123")
-    assertEquals("$base/webview/sso-login?code=abc123&redirect_url=%2Fmypage%2Fsetting", url)
+    assertEquals("$base/auth/sso-login?code=abc123&redirect_url=%2Fmypage%2Fsetting", url)
   }
 
   @Test
   fun `redirect_url 생략 시 code만 담긴다 - 웹이 홈으로 이동`() {
     val url = SsoBootstrap.ssoLoginUrl(base, redirectUrl = null, ssoToken = "abc123")
-    assertEquals("$base/webview/sso-login?code=abc123", url)
+    assertEquals("$base/auth/sso-login?code=abc123", url)
   }
 
   @Test
   fun `본인인증 redirect_url이 가이드 예시와 동일하게 1회 인코딩된다`() {
     val url = SsoBootstrap.ssoLoginUrl(
       base,
-      redirectUrl = "/webview/verification?client_id=8941192&callbackURL=https://test.estoneid.com/auth/app-callback",
+      redirectUrl = "/auth/verification?client_id=8941192&callbackURL=https://test.estoneid.com/auth/app-callback",
       ssoToken = "TOKEN",
     )
     assertEquals(
-      "$base/webview/sso-login?code=TOKEN&redirect_url=" +
-        "%2Fwebview%2Fverification%3Fclient_id%3D8941192%26callbackURL%3D" +
+      "$base/auth/sso-login?code=TOKEN&redirect_url=" +
+        "%2Fauth%2Fverification%3Fclient_id%3D8941192%26callbackURL%3D" +
         "https%3A%2F%2Ftest.estoneid.com%2Fauth%2Fapp-callback",
       url,
     )
@@ -55,14 +55,14 @@ class SsoBootstrapTest {
   fun `토큰 특수문자는 퍼센트 인코딩된다`() {
     // +를 그대로 두면 서버가 공백으로 해석한다 (AES256 토큰은 + = / 포함 가능)
     val url = SsoBootstrap.ssoLoginUrl(base, redirectUrl = null, ssoToken = "AES+base64/pad==")
-    assertEquals("$base/webview/sso-login?code=AES%2Bbase64%2Fpad%3D%3D", url)
+    assertEquals("$base/auth/sso-login?code=AES%2Bbase64%2Fpad%3D%3D", url)
   }
 
   @Test
   fun `redirectUrlValue - path와 query 유지`() {
     assertEquals(
-      "/webview/verification?client_id=1",
-      SsoBootstrap.redirectUrlValue("https://test.estoneid.com/webview/verification?client_id=1"),
+      "/auth/verification?client_id=1",
+      SsoBootstrap.redirectUrlValue("https://test.estoneid.com/auth/verification?client_id=1"),
     )
   }
 
@@ -78,10 +78,10 @@ class SsoBootstrapTest {
   fun `redirectUrlValue - 인코딩된 쿼리 값은 디코딩된다 - 이중 인코딩 방지`() {
     // verificationUrl()은 callbackURL을 이미 인코딩해 두므로 여기서 디코딩해야
     // ssoLoginUrl의 1회 인코딩과 합쳐 정확히 1회 인코딩이 된다.
-    val encoded = "https://test.estoneid.com/webview/verification" +
+    val encoded = "https://test.estoneid.com/auth/verification" +
       "?client_id=1&callbackURL=https%3A%2F%2Ftest.estoneid.com%2Fauth%2Fapp-callback"
     assertEquals(
-      "/webview/verification?client_id=1&callbackURL=https://test.estoneid.com/auth/app-callback",
+      "/auth/verification?client_id=1&callbackURL=https://test.estoneid.com/auth/app-callback",
       SsoBootstrap.redirectUrlValue(encoded),
     )
   }

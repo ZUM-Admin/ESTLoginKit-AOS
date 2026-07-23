@@ -167,7 +167,7 @@ object EstLoginManager {
    * @param callbackUrl 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. (선택)
    */
   fun verificationUrl(callbackUrl: String? = null): String {
-    val path = "${requireConfig().baseUrl}/webview/verification"
+    val path = "${requireConfig().baseUrl}/auth/verification"
     return if (callbackUrl.isNullOrBlank()) path else "$path?callbackURL=${encode(callbackUrl)}"
   }
 

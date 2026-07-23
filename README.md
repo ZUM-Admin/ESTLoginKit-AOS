@@ -178,7 +178,7 @@ EstLoginWebView(onLoginCompleted = { ssoToken -> /* 토큰 교환은 호스트 *
 
 **유효한 accessToken을 넘기는 방식을 권장**합니다 — SDK가 일회성 ssoToken 발급
 (`GET {apiBaseUrl}/auth/sso/sso-token`) → SSO 부트스트랩
-(`GET {baseUrl}/webview/sso-login?code=...&redirect_url=...`) → 마이페이지 진입까지 처리하므로,
+(`GET {baseUrl}/auth/sso-login?code=...&redirect_url=...`) → 마이페이지 진입까지 처리하므로,
 WebView 쿠키가 없거나 만료된 상태에서도 로그인 화면 없이 열립니다. (iOS와 동일한 방식)
 
 ```kotlin
@@ -370,7 +370,7 @@ accessToken 진입 시 SDK가 ssoToken을 발급해 부트스트랩 URL로 이�
 동작**합니다. 목적지 URL은 `EstLoginManager.verificationUrl(callbackUrl)` 로 생성됩니다.
 
 ```
-{baseUrl}/webview/verification?callbackURL=<앱 콜백 URL, URL인코딩>
+{baseUrl}/auth/verification?callbackURL=<앱 콜백 URL, URL인코딩>
 ```
 
 인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리합니다.
