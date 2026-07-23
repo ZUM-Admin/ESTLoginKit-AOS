@@ -14,11 +14,33 @@
  * limitations under the License.
  */
 
+import java.util.Properties
+
 plugins {
   alias(libs.plugins.android.application)
   alias(libs.plugins.kotlin.android)
   alias(libs.plugins.compose.compiler)
 }
+
+// 시크릿은 소스가 아니라 rootProject/local.properties(git 미추적)에서 읽는다.
+// (iOS 예제의 Config.local.xcconfig 대칭) 값이 없으면 안전한 기본값으로 폴백한다.
+val exampleProps = Properties().apply {
+  val file = rootProject.file("local.properties")
+  if (file.exists()) file.inputStream().use { load(it) }
+}
+
+fun exampleProp(key: String, default: String = ""): String =
+  (exampleProps.getProperty(key) ?: default).trim()
+
+// fallback 은 placeholder 다. 실제 값은 git 미추적 local.properties 에만 둔다. (시크릿 커밋 방지)
+val estClientId = exampleProp("estloginkit.clientId", "YOUR_CLIENT_ID")
+val estEnvironment = exampleProp("estloginkit.environment", "development")
+val estApiHost = exampleProp("estloginkit.apiHost", "YOUR_API_HOST")
+val estAppCallback = exampleProp("estloginkit.appCallback")
+val kakaoAppKey = exampleProp("estloginkit.kakaoAppKey")
+val naverClientId = exampleProp("estloginkit.naverClientId")
+val naverClientSecret = exampleProp("estloginkit.naverClientSecret")
+val naverAppName = exampleProp("estloginkit.naverAppName", "EST")
 
 android {
   namespace = "com.estaid.loginkit.example"
@@ -31,12 +53,22 @@ android {
     versionCode = 1
     versionName = "1.0"
 
-    // 실제 카카오 네이티브 앱 키로 교체하세요. (미사용 시 빈 문자열)
-    manifestPlaceholders["kakaoAuthScheme"] = ""
+    buildConfigField("String", "EST_CLIENT_ID", "\"$estClientId\"")
+    buildConfigField("String", "EST_ENVIRONMENT", "\"$estEnvironment\"")
+    buildConfigField("String", "EST_API_HOST", "\"$estApiHost\"")
+    buildConfigField("String", "EST_APP_CALLBACK", "\"$estAppCallback\"")
+    buildConfigField("String", "KAKAO_APP_KEY", "\"$kakaoAppKey\"")
+    buildConfigField("String", "NAVER_CLIENT_ID", "\"$naverClientId\"")
+    buildConfigField("String", "NAVER_CLIENT_SECRET", "\"$naverClientSecret\"")
+    buildConfigField("String", "NAVER_APP_NAME", "\"$naverAppName\"")
+
+    // 카카오 네이티브 로그인 콜백 스킴. (미사용 시 빈 문자열)
+    manifestPlaceholders["kakaoAuthScheme"] = if (kakaoAppKey.isNotBlank()) "kakao$kakaoAppKey" else ""
   }
 
   buildFeatures {
     compose = true
+    buildConfig = true
   }
 
   buildTypes {

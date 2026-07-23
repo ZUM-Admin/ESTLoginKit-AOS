@@ -23,27 +23,40 @@ import com.estaid.loginkit.model.KakaoConfiguration
 import com.estaid.loginkit.model.NaverConfiguration
 
 /**
- * 최소 통합 데모. 아래 플레이스홀더를 발급받은 실제 값으로 교체하세요.
+ * ESTLoginKit 예제 앱 진입점.
+ *
+ * 모든 시크릿은 local.properties → BuildConfig 경로로 주입된다. (소스에 하드코딩 없음,
+ * iOS 예제의 Config.xcconfig 대칭)
  */
 class ExampleApplication : Application() {
   override fun onCreate() {
     super.onCreate()
 
-    EstLoginManager.initialize(
-      context = this,
-      config = EstLoginConfiguration.Builder(clientId = "YOUR_CLIENT_ID")
-        .useEnvironment(EstEnvironment.DEVELOPMENT)   // 기본값: PRODUCTION
-        // .useKakao(KakaoConfiguration(appKey = "YOUR_KAKAO_NATIVE_APP_KEY"))
-        // .useNaver(
-        //   NaverConfiguration(
-        //     appName = getString(R.string.app_name),
-        //     clientId = "YOUR_NAVER_CLIENT_ID",
-        //     clientSecret = "YOUR_NAVER_CLIENT_SECRET",
-        //   ),
-        // )
-        .debugMode(true)
-        .webViewInspectable(true)
-        .build(),
-    )
+    val builder = EstLoginConfiguration.Builder(clientId = BuildConfig.EST_CLIENT_ID)
+      .useEnvironment(environmentFrom(BuildConfig.EST_ENVIRONMENT))
+      .debugMode(true)
+      .webViewInspectable(true)
+
+    if (BuildConfig.KAKAO_APP_KEY.isNotBlank()) {
+      builder.useKakao(KakaoConfiguration(appKey = BuildConfig.KAKAO_APP_KEY))
+    }
+    if (BuildConfig.NAVER_CLIENT_ID.isNotBlank()) {
+      builder.useNaver(
+        NaverConfiguration(
+          appName = BuildConfig.NAVER_APP_NAME,
+          clientId = BuildConfig.NAVER_CLIENT_ID,
+          clientSecret = BuildConfig.NAVER_CLIENT_SECRET,
+        ),
+      )
+    }
+
+    EstLoginManager.initialize(context = this, config = builder.build())
   }
+
+  private fun environmentFrom(value: String): EstEnvironment =
+    when (value.lowercase()) {
+      "production" -> EstEnvironment.PRODUCTION
+      "test" -> EstEnvironment.TEST
+      else -> EstEnvironment.DEVELOPMENT
+    }
 }
