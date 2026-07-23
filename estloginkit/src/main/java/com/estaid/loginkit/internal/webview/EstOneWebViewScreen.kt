@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.estaid.loginkit.internal.EstLog
 
 /**
  * SDK 내부 WebView 화면. (iOS `ESTOneWebViewController` 대칭)
@@ -166,6 +167,13 @@ private class EstWebViewClient(
   override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
     super.onPageStarted(view, url, favicon)
     onLoadingChange(true)
+    if (url != null) {
+      EstLog.debug("page start: ${redactForLog(url)}")
+      // 로그인 진입 시 est 세션 쿠키가 이미 있으면 웹이 AccountSwitcher 를 건너뛸 수 있다.
+      // 값은 민감하므로 존재 여부/개수만 찍는다.
+      val cookie = CookieManager.getInstance().getCookie(url)
+      EstLog.debug("cookies present: ${if (cookie.isNullOrBlank()) "none" else "yes(${cookie.split(';').size})"}")
+    }
   }
 
   override fun onPageFinished(view: WebView?, url: String?) {
@@ -178,6 +186,10 @@ private class EstWebViewClient(
     if (debugMode) handler?.proceed() else super.onReceivedSslError(view, handler, error)
   }
 
+  /** 로그 출력용. `code`(ssoToken)는 저장·로그 금지이므로 값을 마스킹한다. (iOS `redactedForLog` 대칭) */
+  private fun redactForLog(url: String): String =
+    Regex("([?&]code=)[^&]*").replace(url) { "${it.groupValues[1]}***" }
+
   override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
     handleNavigation(view, request.url?.toString())
 
@@ -187,6 +199,7 @@ private class EstWebViewClient(
 
   private fun handleNavigation(view: WebView, navigatingUrl: String?): Boolean {
     val url = navigatingUrl ?: return false
+    EstLog.debug("navigation: ${redactForLog(url)}")
 
     // Google OAuth URL → Android Chrome(비 WebView) UA 로 스왑해 embedded browser 차단 회피.
     // iOS 대칭: 일반 구글 도메인만 감지한다 (서비스별 OAuth 도메인을 하드코딩하지 않음).
