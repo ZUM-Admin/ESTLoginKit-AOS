@@ -219,6 +219,27 @@ object EstLoginManager {
     )
   }
 
+  /**
+   * 로그인 화면으로 이동하는 SSO 부트스트랩 URL. (마이페이지/본인인증과 동일 방식)
+   *
+   * 유효한 accessToken 으로 fresh ssoToken 을 발급해 세션을 수립한 뒤 로그인 페이지로 이동한다.
+   * 로그인 웹뷰를 accessToken 기반으로 열고 싶을 때 사용한다. (accessToken 이 없으면 [loginUrl] 직접 사용)
+   *
+   * ssoToken 은 유효 60초이므로 웹뷰를 여는 시점마다 새로 호출해야 한다.
+   */
+  suspend fun authorizedLoginUrl(
+    accessToken: String,
+    redirectUrl: String? = null,
+    state: String? = null,
+  ): String {
+    val ssoToken = issueSsoToken(accessToken)
+    return SsoBootstrap.ssoLoginUrl(
+      baseUrl = requireConfig().baseUrl,
+      redirectUrl = SsoBootstrap.redirectUrlValue(loginUrl(redirectUrl, state)),
+      ssoToken = ssoToken,
+    )
+  }
+
   /** 본인인증으로 이동하는 SSO 부트스트랩 URL. (iOS `authorizedVerificationRequest(accessToken:callbackURL:)` 대칭) */
   suspend fun authorizedVerificationUrl(accessToken: String, callbackUrl: String? = null): String {
     val ssoToken = issueSsoToken(accessToken)

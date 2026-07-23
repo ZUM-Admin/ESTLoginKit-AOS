@@ -46,6 +46,7 @@ import com.estaid.loginkit.model.AuthResult
 import com.estaid.loginkit.model.LoginPlatform
 import com.estaid.loginkit.webview.EstIdentityVerificationWebViewWithAccessToken
 import com.estaid.loginkit.webview.EstLoginWebView
+import com.estaid.loginkit.webview.EstLoginWebViewWithAccessToken
 import com.estaid.loginkit.webview.EstMyPageWebView
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -104,9 +105,8 @@ private fun ExampleApp(activity: ComponentActivity) {
   }
 
   when (screen) {
-    Screen.WEB_LOGIN -> EstLoginWebView(
-      onBackPressed = { screen = Screen.MAIN },
-      onLoginCompleted = { ssoToken ->
+    Screen.WEB_LOGIN -> {
+      val onCompleted: (String?) -> Unit = { ssoToken ->
         screen = Screen.MAIN
         if (ssoToken == null) {
           status = "웹 로그인 종료 (토큰 없음)"
@@ -123,8 +123,27 @@ private fun ExampleApp(activity: ComponentActivity) {
             }
           }
         }
-      },
-    )
+      }
+      val accessToken = webAccessToken
+      if (accessToken != null) {
+        // 유효한 accessToken 이 있으면 마이페이지/본인인증처럼 SSO 부트스트랩(/auth/sso-login)으로 진입
+        EstLoginWebViewWithAccessToken(
+          accessToken = accessToken,
+          onBackPressed = { screen = Screen.MAIN },
+          onError = { e ->
+            status = "로그인 부트스트랩 실패: ${e.message}"
+            screen = Screen.MAIN
+          },
+          onLoginCompleted = onCompleted,
+        )
+      } else {
+        // accessToken 이 없으면 기존 방식(/user/login) — 신규 로그인
+        EstLoginWebView(
+          onBackPressed = { screen = Screen.MAIN },
+          onLoginCompleted = onCompleted,
+        )
+      }
+    }
 
     Screen.MYPAGE -> {
       val accessToken = webAccessToken
@@ -196,7 +215,13 @@ private fun ExampleApp(activity: ComponentActivity) {
           status = "로그아웃 완료"
         }
       },
-      onWebLogin = { screen = Screen.WEB_LOGIN },
+      onWebLogin = {
+        scope.launch {
+          // 유효한 accessToken 이 있으면 부트스트랩 로그인, 없으면 신규 로그인
+          webAccessToken = validAccessToken()
+          screen = Screen.WEB_LOGIN
+        }
+      },
       onMyPage = {
         scope.launch {
           val token = validAccessToken()

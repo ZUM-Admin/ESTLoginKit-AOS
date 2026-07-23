@@ -48,6 +48,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.estaid.loginkit.internal.EstLog
 
+/** 로그 출력용. `code`(ssoToken)는 저장·로그 금지이므로 값을 마스킹한다. (iOS `redactedForLog` 대칭) */
+private fun redactForLog(url: String): String =
+  Regex("([?&]code=)[^&]*").replace(url) { "${it.groupValues[1]}***" }
+
 /**
  * SDK 내부 WebView 화면. (iOS `ESTOneWebViewController` 대칭)
  *
@@ -136,6 +140,7 @@ internal fun EstOneWebViewScreen(
 
           webView = this
           onWebViewCreated(this)
+          EstLog.debug("open url: ${redactForLog(url)}")
           loadUrl(url)
         }
       },
@@ -185,10 +190,6 @@ private class EstWebViewClient(
   override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
     if (debugMode) handler?.proceed() else super.onReceivedSslError(view, handler, error)
   }
-
-  /** 로그 출력용. `code`(ssoToken)는 저장·로그 금지이므로 값을 마스킹한다. (iOS `redactedForLog` 대칭) */
-  private fun redactForLog(url: String): String =
-    Regex("([?&]code=)[^&]*").replace(url) { "${it.groupValues[1]}***" }
 
   override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean =
     handleNavigation(view, request.url?.toString())

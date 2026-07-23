@@ -88,6 +88,58 @@ fun EstLoginWebView(
 }
 
 /**
+ * 로그인 WebView 컴포저블 — SSO 부트스트랩 진입. (accessToken 기반, 마이페이지/본인인증과 동일 방식)
+ *
+ * 유효한 accessToken 으로 fresh ssoToken 을 발급해(`/auth/sso-login`) 세션을 수립한 뒤 로그인 페이지로 진입한다.
+ * 발급 중에는 로딩이 표시되고, 실패(만료 토큰 등)하면 [onError] 가 호출된다.
+ * (accessToken 이 없으면 url 오버로드 [EstLoginWebView] 를 사용)
+ *
+ * // url 오버로드와 JVM 시그니처가 겹치지 않도록 accessToken 진입점은 별도 함수명으로 분리한다.
+ * (본인인증 [EstIdentityVerificationWebViewWithAccessToken] 와 동일 이유)
+ */
+@Composable
+fun EstLoginWebViewWithAccessToken(
+  accessToken: String,
+  redirectUrl: String? = null,
+  state: String? = null,
+  callbackUrl: String? = EstLoginManager.getConfig()?.callbackUrl,
+  extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
+  inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
+  onPasswordChanged: () -> Unit = {},
+  onAccountDeleted: () -> Unit = {},
+  onBackPressed: () -> Unit = {},
+  onError: (Throwable) -> Unit = {},
+  onLoginCompleted: (ssoToken: String?) -> Unit,
+) {
+  var resolvedUrl by remember { mutableStateOf<String?>(null) }
+
+  LaunchedEffect(accessToken) {
+    try {
+      resolvedUrl = EstLoginManager.authorizedLoginUrl(accessToken, redirectUrl, state)
+    } catch (e: Exception) {
+      onError(e)
+    }
+  }
+
+  val url = resolvedUrl
+  if (url == null) {
+    BootstrapLoading()
+    return
+  }
+
+  EstLoginWebView(
+    url = url,
+    callbackUrl = callbackUrl,
+    extraUserAgent = extraUserAgent,
+    inspectable = inspectable,
+    onPasswordChanged = onPasswordChanged,
+    onAccountDeleted = onAccountDeleted,
+    onBackPressed = onBackPressed,
+    onLoginCompleted = onLoginCompleted,
+  )
+}
+
+/**
  * 마이페이지 WebView 컴포저블 — SSO 부트스트랩 진입. (iOS `MyPageWebView(accessToken:)` 대칭. 권장)
  *
  * 유효한 accessToken만 넘기면 SDK가 ssoToken 발급 → SSO 부트스트랩 → 마이페이지 진입까지
