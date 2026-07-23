@@ -69,11 +69,11 @@ object EstoneAuth {
 
     val accessResult = post("/sso/access-token", body)
     val accessToken = accessResult.optString("accessToken")
-    if (accessToken.isNullOrEmpty()) throw EstoneAuthException("missing field: accessToken")
+    if (accessToken.isEmpty()) throw EstoneAuthException("missing field: accessToken")
 
     val refreshResult = post("/sso/refresh-token", body, bearer = accessToken)
     val refreshToken = refreshResult.optString("refreshToken")
-    if (refreshToken.isNullOrEmpty()) throw EstoneAuthException("missing field: refreshToken")
+    if (refreshToken.isEmpty()) throw EstoneAuthException("missing field: refreshToken")
 
     val expiresIn = if (refreshResult.has("expiresIn")) {
       refreshResult.optLong("expiresIn")
@@ -93,9 +93,9 @@ object EstoneAuth {
 
     val result = post("/refresh-sso", body)
     val accessToken = result.optString("accessToken")
-    if (accessToken.isNullOrEmpty()) throw EstoneAuthException("missing field: accessToken")
+    if (accessToken.isEmpty()) throw EstoneAuthException("missing field: accessToken")
     val refreshToken = result.optString("refreshToken")
-    if (refreshToken.isNullOrEmpty()) throw EstoneAuthException("missing field: refreshToken")
+    if (refreshToken.isEmpty()) throw EstoneAuthException("missing field: refreshToken")
 
     EstoneToken(
       accessToken = accessToken,

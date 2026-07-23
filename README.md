@@ -36,9 +36,45 @@
 ## 모듈 구성
 
 - `:estloginkit` — 라이브러리 (artifact `com.estaid:loginkit`)
-- `:example` — 최소 통합 데모 앱
+- `:example` — 통합 예제 앱. 네이티브 로그인·웹로그인·마이페이지·본인인증·토큰 교환/저장을 모두 다룹니다. (실행법은 아래 [예제 앱](#예제-앱) 참고)
 
 설치(의존성 추가)·매니페스트·배포 등 연동 상세는 [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) 를 참고하세요.
+
+## 예제 앱
+
+`:example` 은 SDK를 실제 앱에 통합하는 방법을 end-to-end로 보여줍니다. iOS 예제와 동일한 흐름입니다.
+
+**시크릿은 소스에 없습니다.** 모든 설정값은 `local.properties`(git 미추적) → `BuildConfig` → 런타임으로
+주입됩니다. Android Studio에서 프로젝트를 열고 아래 값만 채운 뒤 `:example` 을 실행하세요.
+
+```properties
+# local.properties (git 미추적 — 실제 값은 여기에만)
+estloginkit.clientId=YOUR_CLIENT_ID
+estloginkit.environment=development          # production | development | test
+estloginkit.apiHost=dev-api.estoneid.com     # 토큰 교환 백엔드 host (scheme 제외)
+estloginkit.applicationId=com.your.app.debug # 카카오/네이버/est 콘솔 등록 패키지명과 일치
+estloginkit.appCallback=                      # 비우면 SDK 기본 콜백 사용
+# 네이티브 로그인 테스트 시에만 필요
+estloginkit.kakaoAppKey=
+estloginkit.naverClientId=
+estloginkit.naverClientSecret=
+estloginkit.naverAppName=EST
+```
+
+| 항목 | 설명 |
+|------|------|
+| `estloginkit.clientId` | ESTLoginKit 발급 클라이언트 ID (SDK 설정 + 토큰 교환 공통) |
+| `estloginkit.environment` | 실행 환경 — 웹/API host가 쌍으로 결정됨 |
+| `estloginkit.apiHost` | 예제의 호스트측 토큰 교환(`EstoneAuth`)이 호출할 백엔드 host |
+| `estloginkit.applicationId` | 앱 `applicationId`. 콘솔 등록 패키지명과 일치해야 함 |
+| `estloginkit.appCallback` | 로그인 콜백 URL. 비우면 `{webBaseUrl}/auth/app-callback` |
+| `estloginkit.kakao*` / `estloginkit.naver*` | 네이티브 로그인용. 웹로그인·마이페이지·본인인증만 볼 거면 생략 가능 |
+
+> `local.properties` 가 비어 있으면 `example/build.gradle.kts` 의 placeholder 폴백이 쓰여 빌드는 되지만
+> 로그인은 동작하지 않습니다. 값 채우는 곳은 이 파일 한 곳뿐이고, 실제 값은 커밋되지 않습니다.
+>
+> 웹로그인 → 토큰 교환/저장 → 마이페이지 → 본인인증 순으로 확인하면 SSO 부트스트랩(`/auth/sso-login`)과
+> 본인인증(`/auth/verification`) 경로까지 전부 exercise 됩니다.
 
 ## 외부에서 주입해야 할 값
 
@@ -67,7 +103,7 @@
 
 | 항목 | 주입 위치 | 기본값 / 설명 |
 |------|----------|-------------|
-| `environment` | `Builder.useEnvironment(...)` | `EstEnvironment.PRODUCTION`(기본) / `DEVELOPMENT`. 웹·API host 가 환경별로 함께 결정됨 |
+| `environment` | `Builder.useEnvironment(...)` | `EstEnvironment.PRODUCTION`(기본) / `DEVELOPMENT` / `TEST`. 웹·API host 가 환경별로 함께 결정됨 |
 | `callbackUrl` | `Builder.useCallbackUrl(...)` | `{baseUrl}/auth/app-callback`. WebView 로그인 완료 감지(prefix + `code` 쿼리) |
 | `extraUserAgent` | `Builder.useExtraUserAgent(...)` | null. SDK WebView UA 뒤에 append |
 | `webViewInspectable` | `Builder.webViewInspectable(...)` | false. Chrome DevTools inspect |
@@ -104,6 +140,7 @@ class MyApp : Application() {
 > 웹 host 와 API host 는 `environment` 가 **쌍으로 소유**해 웹/API 불일치를 원천 차단합니다.
 > - `PRODUCTION` → 웹 `estoneid.com` · API `api.estoneid.com`
 > - `DEVELOPMENT` → 웹 `dev.estoneid.com` · API `dev-api.estoneid.com`
+> - `TEST` → 웹 `test.estoneid.com` · API `test-api.estoneid.com`
 
 ### 2. 카카오 매니페스트 설정 (카카오 로그인 사용 시)
 

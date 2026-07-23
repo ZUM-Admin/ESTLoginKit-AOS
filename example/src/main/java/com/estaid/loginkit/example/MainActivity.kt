@@ -26,7 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -323,7 +323,7 @@ private fun MainScreen(
 
 @Composable
 private fun SectionTitle(title: String) {
-  Divider(modifier = Modifier.padding(top = 8.dp))
+  HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
   Text(
     text = title,
     style = MaterialTheme.typography.titleSmall,
