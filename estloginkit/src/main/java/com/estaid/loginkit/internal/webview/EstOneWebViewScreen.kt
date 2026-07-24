@@ -172,19 +172,21 @@ private class EstWebViewClient(
   override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
     super.onPageStarted(view, url, favicon)
     onLoadingChange(true)
-    if (url != null) {
-      EstLog.debug("page start: ${redactForLog(url)}")
-      // 로그인 진입 시 est 세션 쿠키가 이미 있으면 웹이 AccountSwitcher 를 건너뛸 수 있다.
-      // 값은 민감하므로 존재 여부/개수만 찍는다.
-      val cookie = CookieManager.getInstance().getCookie(url)
-      EstLog.debug("cookies present: ${if (cookie.isNullOrBlank()) "none" else "yes(${cookie.split(';').size})"}")
-    }
+    if (url != null) EstLog.debug("page start: ${redactForLog(url)}")
   }
 
   override fun onPageFinished(view: WebView?, url: String?) {
     super.onPageFinished(view, url)
     onLoadingChange(false)
+    if (url != null) EstLog.debug("page finished: ${redactForLog(url)}")
     CookieManager.getInstance().flush()
+  }
+
+  // 서버 302 리다이렉트는 shouldOverrideUrlLoading 을 안 거치는 경우가 있어 URL 이 샐 수 있다.
+  // 히스토리 갱신 훅으로 리다이렉트 착지 URL 까지 빠짐없이 로그로 남긴다.
+  override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
+    super.doUpdateVisitedHistory(view, url, isReload)
+    if (url != null) EstLog.debug("history: ${redactForLog(url)}")
   }
 
   override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
