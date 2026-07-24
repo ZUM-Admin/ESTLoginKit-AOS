@@ -144,6 +144,17 @@ internal fun EstOneWebViewScreen(
           loadUrl(url)
         }
       },
+      // 컴포지션에서 빠질 때(화면 전환/닫기) WebView 를 정리한다. 이게 없으면 로그인 WebView 가
+      // 살아남아 자기 client(callbackUrl=app-callback)로 다른 화면(마이페이지 등)의
+      // /auth/app-callback 네비게이션을 가로채 오작동(오완료·닫힘)한다.
+      onRelease = { released ->
+        EstLog.debug("release webview")
+        released.stopLoading()
+        released.webViewClient = WebViewClient()   // 우리 client 분리 → 잔여 콜백 차단
+        released.removeJavascriptInterface("AndroidInterface")
+        (released.parent as? ViewGroup)?.removeView(released)
+        released.destroy()
+      },
     )
 
     if (isLoading) {
@@ -213,6 +224,7 @@ private class EstWebViewClient(
     // 본인인증 모드: callbackUrl 은 브릿지 미등록 시에만 여기로 리다이렉트된다
     // (`?status=...&code=<ssoToken>`). status 를 함께 파싱해 1회만 전달한다.
     if (verificationDelivery != null && !callbackUrl.isNullOrBlank() && url.startsWith(callbackUrl)) {
+      EstLog.debug("[complete] verification via callbackUrl")
       val uri = runCatching { Uri.parse(url) }.getOrNull()
       verificationDelivery.fromCallback(
         status = uri?.getQueryParameter("status"),
@@ -228,6 +240,7 @@ private class EstWebViewClient(
         latestSsoToken = ssoToken
         if (initialState.isNullOrBlank()) {
           // state 미사용 흐름: callbackUrl 자체가 종착지 — 즉시 완료.
+          EstLog.debug("[complete] login via callbackUrl match → onLoginCompleted")
           onLoginCompleted(ssoToken)
           return true
         }
@@ -240,6 +253,7 @@ private class EstWebViewClient(
 
     // state URL prefix 매칭 → 로그인 완료 판정 (이 시점에 세션 쿠키 커밋 보장)
     if (!initialState.isNullOrBlank() && url.startsWith(initialState)) {
+      EstLog.debug("[complete] login via state match → onLoginCompleted")
       onLoginCompleted(latestSsoToken.orEmpty())
       return false
     }
