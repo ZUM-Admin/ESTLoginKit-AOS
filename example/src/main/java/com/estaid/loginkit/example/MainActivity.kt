@@ -45,7 +45,6 @@ import com.estaid.loginkit.EstLoginManager
 import com.estaid.loginkit.model.AuthResult
 import com.estaid.loginkit.model.LoginPlatform
 import com.estaid.loginkit.webview.EstIdentityVerificationWebViewWithAccessToken
-import com.estaid.loginkit.webview.EstLoginWebView
 import com.estaid.loginkit.webview.EstLoginWebViewWithAccessToken
 import com.estaid.loginkit.webview.EstMyPageWebView
 import kotlinx.coroutines.launch
@@ -124,25 +123,16 @@ private fun ExampleApp(activity: ComponentActivity) {
           }
         }
       }
-      val accessToken = webAccessToken
-      if (accessToken != null) {
-        // 유효한 accessToken 이 있으면 마이페이지/본인인증처럼 SSO 부트스트랩(/auth/sso-login)으로 진입
-        EstLoginWebViewWithAccessToken(
-          accessToken = accessToken,
-          onBackPressed = { screen = Screen.MAIN },
-          onError = { e ->
-            status = "로그인 부트스트랩 실패: ${e.message}"
-            screen = Screen.MAIN
-          },
-          onLoginCompleted = onCompleted,
-        )
-      } else {
-        // accessToken 이 없으면 기존 방식(/user/login) — 신규 로그인
-        EstLoginWebView(
-          onBackPressed = { screen = Screen.MAIN },
-          onLoginCompleted = onCompleted,
-        )
-      }
+      // 웹뷰 = 무조건 부트스트랩(/auth/sso-login). 토큰 없으면 code 없이 열고, 웹이 로그인 페이지로 라우팅.
+      EstLoginWebViewWithAccessToken(
+        accessToken = webAccessToken,
+        onBackPressed = { screen = Screen.MAIN },
+        onError = { e ->
+          status = "로그인 부트스트랩 실패: ${e.message}"
+          screen = Screen.MAIN
+        },
+        onLoginCompleted = onCompleted,
+      )
     }
 
     Screen.MYPAGE -> {

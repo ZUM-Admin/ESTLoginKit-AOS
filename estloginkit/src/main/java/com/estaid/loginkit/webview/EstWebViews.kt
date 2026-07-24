@@ -88,18 +88,20 @@ fun EstLoginWebView(
 }
 
 /**
- * 로그인 WebView 컴포저블 — SSO 부트스트랩 진입. (accessToken 기반, 마이페이지/본인인증과 동일 방식)
+ * 로그인 WebView 컴포저블 — 항상 SSO 부트스트랩(`/auth/sso-login`)으로 진입.
  *
- * 유효한 accessToken 으로 fresh ssoToken 을 발급해(`/auth/sso-login`) 세션을 수립한 뒤 로그인 페이지로 진입한다.
+ * - [accessToken] 이 유효하면 fresh ssoToken 을 발급해 세션을 수립한 뒤 로그인 페이지로 진입한다.
+ * - [accessToken] 이 null 이면 `code` 없이 부트스트랩으로 열고, 웹이 세션 없음으로 보고 로그인 페이지로 라우팅한다.
+ *   (즉 "웹뷰 = 무조건 부트스트랩" — 앱은 토큰 유무로 분기할 필요가 없다)
+ *
  * 발급 중에는 로딩이 표시되고, 실패(만료 토큰 등)하면 [onError] 가 호출된다.
- * (accessToken 이 없으면 url 오버로드 [EstLoginWebView] 를 사용)
  *
  * // url 오버로드와 JVM 시그니처가 겹치지 않도록 accessToken 진입점은 별도 함수명으로 분리한다.
  * (본인인증 [EstIdentityVerificationWebViewWithAccessToken] 와 동일 이유)
  */
 @Composable
 fun EstLoginWebViewWithAccessToken(
-  accessToken: String,
+  accessToken: String?,
   redirectUrl: String? = null,
   state: String? = null,
   callbackUrl: String? = EstLoginManager.getConfig()?.callbackUrl,

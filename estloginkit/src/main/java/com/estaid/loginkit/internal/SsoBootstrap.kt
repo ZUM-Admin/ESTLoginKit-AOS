@@ -35,14 +35,14 @@ internal object SsoBootstrap {
    *
    * @param redirectUrl 세션 수립 후 이동할 est 내부 경로(자체 쿼리 포함, 미인코딩 원본).
    *   null이면 생략되어 홈(/)으로 이동한다. 외부 URL은 웹이 홈으로 대체한다.
+   * @param ssoToken 세션 수립용 1회성 토큰. null/빈 값이면 `code`가 생략되고, 웹은 세션 없음으로 보고
+   *   로그인 페이지로 라우팅한다. (accessToken 없이 로그인 웹뷰를 부트스트랩으로 열 때)
    */
-  fun ssoLoginUrl(baseUrl: String, redirectUrl: String?, ssoToken: String): String {
-    val query = buildString {
-      append("code=").append(queryEncoded(ssoToken))
-      if (redirectUrl != null) {
-        append("&redirect_url=").append(queryEncoded(redirectUrl))
-      }
-    }
+  fun ssoLoginUrl(baseUrl: String, redirectUrl: String?, ssoToken: String?): String {
+    val query = buildList {
+      if (!ssoToken.isNullOrEmpty()) add("code=${queryEncoded(ssoToken)}")
+      if (redirectUrl != null) add("redirect_url=${queryEncoded(redirectUrl)}")
+    }.joinToString("&")
     return "$baseUrl/auth/sso-login?$query"
   }
 
