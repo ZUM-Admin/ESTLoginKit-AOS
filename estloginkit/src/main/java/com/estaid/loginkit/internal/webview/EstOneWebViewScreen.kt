@@ -53,6 +53,23 @@ private fun redactForLog(url: String): String =
   Regex("([?&]code=)[^&]*").replace(url) { "${it.groupValues[1]}***" }
 
 /**
+ * 로그인 완료 감지(state 매칭)의 대상 state를 요청 URL에서 추출한다. (iOS `resolveInitialState` 대칭)
+ *
+ * 1) top-level `state` — `/user/login?...&state=` 직접 진입
+ * 2) 없으면 부트스트랩(`/auth/sso-login?redirect_url=<.../user/login?...&state=...>`)의
+ *    `redirect_url` 안쪽 `state` — 부트스트랩 진입 시 호스트가 top-level state를 중복으로
+ *    싣지 않아도 완료를 감지할 수 있게 한다.
+ */
+private fun resolveInitialState(url: String): String? {
+  val uri = runCatching { Uri.parse(url) }.getOrNull() ?: return null
+  uri.getQueryParameter("state")?.takeIf { it.isNotBlank() }?.let { return it }
+  val redirect = uri.getQueryParameter("redirect_url")?.takeIf { it.isNotBlank() } ?: return null
+  // redirect는 이미 1회 디코드됨(예: /user/login?...&state=https%3A%2F%2F...)
+  return runCatching { Uri.parse(redirect).getQueryParameter("state") }
+    .getOrNull()?.takeIf { it.isNotBlank() }
+}
+
+/**
  * SDK 내부 WebView 화면. (iOS `ESTOneWebViewController` 대칭)
  *
  * 로그인 / 마이페이지 모두 이 컴포저블을 재사용한다.
@@ -76,9 +93,7 @@ internal fun EstOneWebViewScreen(
   var isLoading by remember { mutableStateOf(true) }
   var webView by remember { mutableStateOf<WebView?>(null) }
 
-  val initialState = remember(url) {
-    runCatching { Uri.parse(url).getQueryParameter("state") }.getOrNull()
-  }
+  val initialState = remember(url) { resolveInitialState(url) }
 
   BackHandler {
     if (webView?.canGoBack() == true) webView?.goBack() else onBackPressed()
