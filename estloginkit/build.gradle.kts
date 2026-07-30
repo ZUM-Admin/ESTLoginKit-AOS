@@ -29,9 +29,11 @@ android {
   defaultConfig {
     minSdk = (project.property("minSdk") as String).toInt()
     consumerProguardFiles("consumer-rules.pro")
-    // 소비 앱이 자체 카카오 네이티브 앱 키로 override 한다. (가이드 §매니페스트)
-    // 라이브러리 단독 빌드 시 매니페스트 머지가 깨지지 않도록 placeholder 기본값을 둔다.
-    manifestPlaceholders["kakaoAuthScheme"] = "kakao-placeholder"
+    // 카카오 리다이렉트 스킴(kakao{nativeAppKey})은 **소비 앱이 자체 값으로 주입**한다.
+    // 라이브러리에서 placeholder 를 정의하면 그 값이 AAR 매니페스트에 baked 되어(예: kakao-placeholder)
+    // 소비 앱의 manifestPlaceholders 로 override 되지 않아 카카오 리다이렉트가 깨진다. 그래서 여기선
+    // 정의하지 않고 `${kakaoAuthScheme}` 를 미해결 상태로 소비 앱에 넘긴다. (:example 은 자체 build.gradle
+    // 에서 kakaoAuthScheme 를 제공)
   }
 
   buildFeatures {

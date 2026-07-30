@@ -304,7 +304,7 @@ https://estoneid.com/user/login
 ```kotlin
 @Composable
 fun EstLoginWebView(
-  url: String = EstLoginManager.loginUrl(),
+  url: String = EstLoginManager.bootstrapLoginUrl(),
   callbackUrl: String? = EstLoginManager.getConfig()?.callbackUrl,
   extraUserAgent: String? = null,
   inspectable: Boolean = false,
