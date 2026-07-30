@@ -46,12 +46,21 @@ internal class KakaoAuthProvider : AuthProvider {
             continuation.resumeWithException(
               AuthError.Unknown(IllegalStateException("Kakao authorize token is empty.")),
             )
-          else -> continuation.resume(
-            AuthResult(
-              authorizeToken = token!!.accessToken,
-              refreshToken = token.refreshToken.orEmpty(),
-            ),
-          )
+          else -> {
+            // email 은 옵셔널 — me() 실패/미동의 시에도 로그인은 성공으로 처리한다. 웹이 이메일 인풋을
+            // prefill 하려면 이 값이 필요하다(브릿지 payload 로 전달). (구 est-auth-sdk 대칭)
+            UserApiClient.instance.me { user, meError ->
+              if (!continuation.isActive) return@me
+              if (meError != null) EstLog.debug("Kakao me() failed (email skipped): ${meError.message}")
+              continuation.resume(
+                AuthResult(
+                  authorizeToken = token!!.accessToken,
+                  refreshToken = token.refreshToken.orEmpty(),
+                  email = user?.kakaoAccount?.email?.takeIf { it.isNotBlank() }.orEmpty(),
+                ),
+              )
+            }
+          }
         }
       }
 

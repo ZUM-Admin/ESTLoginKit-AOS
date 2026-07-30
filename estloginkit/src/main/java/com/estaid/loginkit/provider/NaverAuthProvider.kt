@@ -21,6 +21,8 @@ import com.estaid.loginkit.model.AuthError
 import com.estaid.loginkit.model.AuthResult
 import com.navercorp.nid.NidOAuth
 import com.navercorp.nid.oauth.util.NidOAuthCallback
+import com.navercorp.nid.profile.domain.vo.NidProfile
+import com.navercorp.nid.profile.util.NidProfileCallback
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -44,11 +46,33 @@ internal class NaverAuthProvider : AuthProvider {
               )
               return
             }
-            continuation.resume(
-              AuthResult(
-                authorizeToken = accessToken,
-                refreshToken = NidOAuth.getRefreshToken().orEmpty(),
-              ),
+
+            fun resumeSuccess(email: String?, ci: String?) {
+              if (!continuation.isActive) return
+              continuation.resume(
+                AuthResult(
+                  authorizeToken = accessToken,
+                  refreshToken = NidOAuth.getRefreshToken().orEmpty(),
+                  ci = ci?.takeIf { it.isNotBlank() }.orEmpty(),
+                  email = email?.takeIf { it.isNotBlank() }.orEmpty(),
+                ),
+              )
+            }
+
+            // email/ci 는 옵셔널 — 프로필 조회 실패/미동의/미제휴 시에도 로그인은 성공으로 처리한다. 웹이
+            // 이메일 인풋을 prefill 하려면 email 이 필요하다(브릿지 payload 로 전달). ci 는 별도 제휴 없이는
+            // 응답에 없을 수 있다(그 경우 빈 값). (구 est-auth-sdk 대칭)
+            NidOAuth.getUserProfile(
+              object : NidProfileCallback<NidProfile> {
+                override fun onSuccess(result: NidProfile) {
+                  resumeSuccess(result.profile?.email, result.profile?.ci)
+                }
+
+                override fun onFailure(errorCode: String, errorDesc: String) {
+                  EstLog.debug("Naver profile fetch failed (email/ci skipped): $errorCode $errorDesc")
+                  resumeSuccess(null, null)
+                }
+              },
             )
           }
 
