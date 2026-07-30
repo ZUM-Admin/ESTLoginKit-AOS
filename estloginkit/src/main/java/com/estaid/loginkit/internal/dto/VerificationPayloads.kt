@@ -18,25 +18,11 @@ package com.estaid.loginkit.internal.dto
 import com.estaid.loginkit.internal.EstLog
 import com.estaid.loginkit.model.AuthError
 import com.estaid.loginkit.model.VerificationResult
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
-
-/**
- * 본인인증 완료 통지 페이로드. (iOS `VerificationCompletePayload` 대칭)
- *
- * 브릿지(`onVerificationComplete`)와 callbackUrl 리다이렉트가 같은 status 값을 쓴다.
- * `{ "status": "certified", "token": "<ssoToken, certified일 때만>" }`
- */
-@Serializable
-internal data class VerificationCompletePayload(
-  val status: String,
-  val token: String? = null,
-)
 
 /**
  * 본인인증 종료 상태. (iOS `VerificationCompleteStatus` 대칭)
  *
- * callbackUrl 에서는 `?status=`, 브릿지에서는 payload 의 `status` 로 전달된다.
+ * callbackUrl 리다이렉트의 `?status=` 값으로 전달된다.
  */
 internal enum class VerificationCompleteStatus(val rawValue: String) {
   /** 승격 완료 (CI 충돌 시 계정 병합까지 완료) */
@@ -54,7 +40,7 @@ internal enum class VerificationCompleteStatus(val rawValue: String) {
       rawValue?.let { raw -> entries.firstOrNull { it.rawValue.equals(raw, ignoreCase = true) } }
 
     /**
-     * 브릿지/callbackUrl 어느 경로로 들어왔든 동일하게 호스트 결과로 해석한다.
+     * 통지 값을 호스트 결과로 해석한다.
      * 알 수 없는 status 나 통지 누락(null)은 실패로 처리한다. (iOS 패리티)
      */
     fun result(status: String?, token: String?): Result<VerificationResult> =
@@ -77,16 +63,4 @@ internal enum class VerificationCompleteStatus(val rawValue: String) {
         }
       }
   }
-}
-
-/** 본인인증 완료 페이로드 파싱. (iOS `WebViewMessage.decode` 대칭) */
-internal object VerificationBridge {
-  private val json = Json {
-    ignoreUnknownKeys = true
-    explicitNulls = false
-  }
-
-  /** 문서에 없는 값이 와도 디코딩이 깨지지 않도록 status 는 String 으로 받고 해석은 매핑 단계에서 한다. */
-  fun parse(message: String): VerificationCompletePayload? =
-    runCatching { json.decodeFromString<VerificationCompletePayload>(message) }.getOrNull()
 }

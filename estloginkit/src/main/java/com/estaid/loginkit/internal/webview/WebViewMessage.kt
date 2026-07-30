@@ -23,9 +23,6 @@ internal enum class WebViewMessage(val rawValue: String) {
   ON_LOGIN_COMPLETE("onLoginComplete"),
   ON_PASSWORD_CHANGED("onPasswordChanged"),
   ON_ACCOUNT_DELETED("onAccountDeleted"),
-
-  /** 본인인증 완료 통지. 로그인용 [ON_LOGIN_COMPLETE] 와 분리된 별도 메서드다. */
-  ON_VERIFICATION_COMPLETE("onVerificationComplete"),
   ;
 
   companion object {

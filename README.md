@@ -386,7 +386,7 @@ data class VerificationResult(
 @Composable
 fun EstIdentityVerificationWebViewWithAccessToken(
   accessToken: String,          // 만료 판단·갱신은 앱 책임. 발급 실패는 onResult 로 failure 전달
-  callbackUrl: String? = null,  // 브릿지 미등록 시 리다이렉트될 앱 콜백 URL (선택)
+  callbackUrl: String? = null,  // 완료 시 리다이렉트될 앱 콜백 URL (생략하면 결과 수신 불가)
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
   inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
   onBackPressed: () -> Unit = {},
@@ -412,14 +412,18 @@ accessToken 진입 시 SDK가 ssoToken을 발급해 부트스트랩 URL로 이�
 
 인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리합니다.
 
-**완료 통지는 ① 브릿지 → ② (브릿지 미등록 시) `callbackUrl` 리다이렉트 순으로 실행되며, SDK가 둘 다
-처리합니다.** 호스트는 `onResult` 만 구현하면 되고, 두 경로가 모두 도착해도 결과는 **한 번만** 전달됩니다.
+**완료 통지는 `callbackUrl` 리다이렉트 한 경로로만 전달됩니다.** 호스트는 `onResult` 만 구현하면 되고,
+웹이 리다이렉트를 재시도해도 결과는 **한 번만** 전달됩니다.
 
 | 경로 | 형태 |
 |------|------|
-| 브릿지 | `window.AndroidInterface.onVerificationComplete(jsonString)` — 로그인용 `onLoginComplete` 와 분리된 별도 메서드 |
-| 페이로드 | `{ "status": "certified" \| "cancelled" \| "error", "token": "<ssoToken, certified일 때만>" }` |
 | callbackUrl | `<callbackUrl>?status=certified\|cancelled\|error&code=<ssoToken>` |
+
+> ⚠️ **`onVerificationComplete` JS 브릿지는 제거됐습니다.**
+> 웹이 브릿지 존재 여부로 "네이티브가 본인인증을 호스팅 중"인지 판단해 리다이렉트를 생략했기 때문에,
+> **웹이 자체적으로 회원가입 → 본인인증까지 이어가는 흐름이 인증 완료 직후 멈추는 문제**가 있었습니다.
+> 이제 통지 경로가 리다이렉트 하나뿐이라 인증이 중간 단계든 종착점이든 동일하게 동작합니다.
+> 웹은 브릿지 유무와 무관하게 **항상 `callbackUrl` 로 리다이렉트**하면 됩니다.
 
 | `status` | 의미 | `onResult` |
 |----------|------|------------|
@@ -474,7 +478,7 @@ fun CheckoutButton(myAccessToken: String) {
 | 인증 화면 제공 | `EstIdentityVerificationWebView` (SDK) |
 | 화면 띄우기/닫기 | **호스트** |
 | 토큰 | **호스트가 주입** (SDK 미보관) |
-| 완료 통지 수신 | **SDK** (브릿지 + callbackUrl 둘 다 처리, 결과는 1회만 전달) |
+| 완료 통지 수신 | **SDK** (`callbackUrl` 리다이렉트를 가로채 전달, 결과는 1회만) |
 | 결과 | `Result<VerificationResult>` |
 | `certified` 후속 처리 | **호스트** (재발급된 ssoToken 으로 세션 재수립) |
 

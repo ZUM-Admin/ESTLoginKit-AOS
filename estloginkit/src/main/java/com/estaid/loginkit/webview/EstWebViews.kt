@@ -49,11 +49,12 @@ import kotlinx.coroutines.launch
  * 웹의 SNS 네이티브 로그인 요청을 처리하며, callbackUrl 의 `code` 가 회수되면 [onLoginCompleted]
  * 로 ssoToken 을 전달한다. (토큰 교환은 호스트 책임)
  *
- * @param url 기본값은 [EstLoginManager.loginUrl] — baseUrl+clientId 설정 시 자동 구성.
+ * @param url 기본값은 [EstLoginManager.bootstrapLoginUrl] — 항상 `/auth/sso-login` 부트스트랩으로
+ *   진입한다(iOS 기본 방식). 부트스트랩을 우회하려면 [EstLoginManager.loginUrl] 을 직접 넘겨라.
  */
 @Composable
 fun EstLoginWebView(
-  url: String = EstLoginManager.loginUrl(),
+  url: String = EstLoginManager.bootstrapLoginUrl(),
   callbackUrl: String? = EstLoginManager.getConfig()?.callbackUrl,
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
   inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
@@ -288,11 +289,12 @@ fun EstIdentityVerificationWebViewWithAccessToken(
  * 로그인 세션 쿠키(프로세스 전역 [android.webkit.CookieManager])를 공유하므로 임시 회원 세션이
  * 그대로 전달되며, 인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리한다.
  *
- * 완료 통지는 ① 브릿지(`onVerificationComplete`) → ② (브릿지 미등록 시) [callbackUrl] 리다이렉트
- * 순으로 들어오며 SDK 가 둘 다 처리한다. 두 경로가 모두 도착해도 [onResult] 는 1회만 호출된다.
+ * 완료 통지는 [callbackUrl] 리다이렉트 한 경로로만 들어온다. 웹이 리다이렉트를 재시도해도
+ * [onResult] 는 1회만 호출된다.
  *
  * @param url 기본값은 [EstLoginManager.verificationUrl] — [callbackUrl] 을 조합해 구성한다.
- * @param callbackUrl 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. 브릿지가 우선이므로 생략해도 동작한다.
+ * @param callbackUrl 완료 시 리다이렉트될 앱 콜백 URL.
+ *   **생략하면 결과를 받을 경로가 없어 [onResult] 가 호출되지 않는다.**
  * @param onResult 사용자 취소 시 [AuthError.Cancelled], 승격/병합 실패 시 [AuthError.VerificationFailed].
  */
 @Composable

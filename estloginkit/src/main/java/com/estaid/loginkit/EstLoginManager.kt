@@ -38,6 +38,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
+import java.net.URI
 import java.net.URLEncoder
 import kotlin.coroutines.resume
 
@@ -96,6 +97,9 @@ object EstLoginManager {
    * WebView 로그인 화면을 띄우고 ssoToken 을 회수한다. (Android 편의 — iOS 는 `LoginWebView` 사용)
    * 토큰 교환은 호스트 책임이다.
    *
+   * [url] 을 직접 주지 않으면 **항상 `/auth/sso-login` 부트스트랩**으로 진입한다(iOS 기본 방식).
+   * 부트스트랩이 웹 세션을 먼저 검증·정리하므로 쿠키 잔존 상태 차이 없이 동일하게 로그인 페이지로 진입한다.
+   *
    * @return ssoToken (취소 시 [AuthError.Cancelled])
    */
   suspend fun startWebLogin(
@@ -106,9 +110,9 @@ object EstLoginManager {
     extraUserAgent: String? = null,
   ): Result<String?> {
     val cfg = config ?: return Result.failure(AuthError.NotInitialized)
-    // 우선순위: 호출 시 직접 전달 URL → baseUrl+clientId 로 빌드한 로그인 URL
+    // 우선순위: 호출 시 직접 전달 URL → 부트스트랩(`/auth/sso-login`)으로 감싼 로그인 URL(기본)
     val resolvedUrl = url?.takeIf { it.isNotBlank() }
-      ?: loginUrl(redirectUrl = redirectUrl, state = state)
+      ?: bootstrapLoginUrl(redirectUrl = redirectUrl, state = state)
     return suspendCancellableCoroutine { continuation ->
       val launcher = activity.activityResultRegistry.register(
         "estloginkit-weblogin",
@@ -153,6 +157,31 @@ object EstLoginManager {
     return "$base/user/login?$params"
   }
 
+  /**
+   * 로그인 부트스트랩 URL 빌더 — 내부 `/user/login` 을 항상 `/auth/sso-login` 으로 감싼다.
+   * (iOS 기본 진입 방식과 동일)
+   *
+   * `code` 없이 열리며, 웹이 기존 est 세션을 먼저 검증·정리한 뒤 로그인 페이지로 라우팅한다.
+   * 따라서 쿠키 잔존 상태에 상관없이 항상 동일하게 진입한다. accessToken 으로 세션까지 수립하려면
+   * [authorizedLoginUrl] 을 사용하라.
+   */
+  fun bootstrapLoginUrl(redirectUrl: String? = null, state: String? = null): String {
+    val cfg = requireConfig()
+    // loginUrl(/user/login?...) 을 부트스트랩 redirect_url 로 감싼다. 이때 안쪽 쿼리 값
+    // (redirect_url·state 는 그 자체가 URL)을 **이미 1회 인코딩된 상태(rawQuery) 그대로** 넘겨
+    // SsoBootstrap 이 한 번 더 인코딩하게 한다 → 이중 인코딩. 디코드된 값(단일 인코딩)을 넘기면
+    // SDK 의 중첩 state 추출([resolveInitialState])이 깨져 top-level state 가 없는 것으로 판정되고,
+    // union-user-api 콜백에서 조기 완료(callbackUrl 매칭)돼 EZSID 세션이 커밋되지 않는다.
+    // (iOS LoginFullScreenView.bootstrapLoginURL 대칭)
+    val inner = URI(loginUrl(redirectUrl, state))
+    val redirectValue = inner.rawPath + inner.rawQuery?.let { "?$it" }.orEmpty()
+    return SsoBootstrap.ssoLoginUrl(
+      baseUrl = cfg.baseUrl,
+      redirectUrl = redirectValue,
+      ssoToken = null,
+    )
+  }
+
   /** 마이페이지 URL. (iOS `mypageURL`) */
   val mypageUrl: String
     get() = "${requireConfig().baseUrl}/mypage/setting"
@@ -161,10 +190,10 @@ object EstLoginManager {
    * 본인인증 화면 URL. (iOS `verificationURL(callbackURL:)`)
    *
    * 웹뷰가 임시 회원의 로그인 세션 쿠키를 갖고 있어야 하며, 인증 회원 승격과 CI 충돌 해소는
-   * 웹뷰가 자체 처리한다. 완료 통지는 브릿지(`onVerificationComplete`) 우선이고, 브릿지가 없을
-   * 때만 [callbackUrl] 로 리다이렉트되므로 둘 중 하나만 처리하면 된다.
+   * 웹뷰가 자체 처리한다. 완료 통지는 [callbackUrl] 리다이렉트로만 전달된다.
    *
-   * @param callbackUrl 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. (선택)
+   * @param callbackUrl 완료 시 리다이렉트될 앱 콜백 URL.
+   *   **생략하면 결과를 받을 경로가 없다** — 화면이 인증 흐름의 종착점이면 반드시 지정하라.
    */
   fun verificationUrl(callbackUrl: String? = null): String {
     val path = "${requireConfig().baseUrl}/auth/verification"

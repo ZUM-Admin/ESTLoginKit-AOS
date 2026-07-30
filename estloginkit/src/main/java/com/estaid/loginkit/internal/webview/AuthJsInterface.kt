@@ -27,7 +27,6 @@ internal class AuthJsInterface(
   private val onSnsLoginRequested: (String) -> Unit,
   private val onPasswordChanged: () -> Unit,
   private val onAccountDeleted: () -> Unit,
-  private val onVerificationComplete: ((String) -> Unit)? = null,
 ) {
   @JavascriptInterface
   fun requestSnsLogin(message: String) {
@@ -51,11 +50,5 @@ internal class AuthJsInterface(
   fun onAccountDeleted() {
     EstLog.debug("[bridge] ${WebViewMessage.ON_ACCOUNT_DELETED.rawValue}")
     onAccountDeleted.invoke()
-  }
-
-  @JavascriptInterface
-  fun onVerificationComplete(message: String) {
-    EstLog.debug("[bridge] ${WebViewMessage.ON_VERIFICATION_COMPLETE.rawValue}: $message")
-    onVerificationComplete?.invoke(message)
   }
 }

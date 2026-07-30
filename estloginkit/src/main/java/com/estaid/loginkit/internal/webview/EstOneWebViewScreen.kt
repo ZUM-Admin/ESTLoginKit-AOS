@@ -135,9 +135,6 @@ internal fun EstOneWebViewScreen(
               onSnsLoginRequested = onSnsLoginRequested,
               onPasswordChanged = onPasswordChanged,
               onAccountDeleted = onAccountDeleted,
-              onVerificationComplete = verificationDelivery?.let { delivery ->
-                { message -> delivery.fromBridge(message) }
-              },
             ),
             "AndroidInterface",
           )

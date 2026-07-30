@@ -16,33 +16,20 @@
 package com.estaid.loginkit.internal.webview
 
 import com.estaid.loginkit.internal.EstLog
-import com.estaid.loginkit.internal.dto.VerificationBridge
 import com.estaid.loginkit.internal.dto.VerificationCompleteStatus
 import com.estaid.loginkit.model.VerificationResult
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * 본인인증 완료 통지를 호스트에 1회만 전달한다. (iOS `hasDeliveredVerificationResult` 가드 대칭)
+ * 본인인증 완료 통지를 호스트에 1회만 전달한다. (iOS `hasCompleted` 가드 대칭)
  *
- * 웹은 브릿지(`onVerificationComplete`) → (미등록 시) callbackUrl 리다이렉트 순으로 통지하므로,
- * 브릿지가 등록된 상태에서 웹이 리다이렉트까지 수행해도 호스트가 결과를 두 번 받지 않도록
- * 첫 전달만 통과시킨다. (브릿지는 임의 스레드에서 호출될 수 있어 원자적으로 가드한다)
+ * 통지는 callbackUrl 리다이렉트 한 경로로만 들어오지만, 웹이 리다이렉트를 재시도해
+ * 여러 번 매칭될 수 있으므로 첫 전달만 통과시킨다. (임의 스레드 호출 대비 원자적으로 가드한다)
  */
 internal class VerificationResultDelivery(
   private val onResult: (Result<VerificationResult>) -> Unit,
 ) {
   private val delivered = AtomicBoolean(false)
-
-  /** 브릿지 경로: JSON 문자열 페이로드. 파싱 실패 시에도 실패 결과를 전달해 화면이 열린 채 남지 않게 한다. */
-  fun fromBridge(message: String) {
-    val payload = VerificationBridge.parse(message)
-    if (payload == null) {
-      EstLog.error("verification bridge payload parse failed")
-      deliver(status = null, token = null)
-    } else {
-      deliver(status = payload.status, token = payload.token)
-    }
-  }
 
   /** callbackUrl 경로: `<callbackUrl>?status=...&code=<ssoToken>`. */
   fun fromCallback(status: String?, code: String?) = deliver(status, code)

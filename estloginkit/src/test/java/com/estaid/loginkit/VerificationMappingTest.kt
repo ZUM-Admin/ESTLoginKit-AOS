@@ -15,15 +15,13 @@
  */
 package com.estaid.loginkit
 
-import com.estaid.loginkit.internal.dto.VerificationBridge
 import com.estaid.loginkit.internal.dto.VerificationCompleteStatus
 import com.estaid.loginkit.model.AuthError
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-/** iOS `VerificationResultMappingTests` / `VerificationCompletePayloadTests` 대칭. */
+/** iOS `VerificationResultMappingTests` 대칭. */
 class VerificationMappingTest {
 
   // region 완료 통지 → Result 매핑
@@ -68,35 +66,6 @@ class VerificationMappingTest {
   fun `status 대소문자 무시`() {
     val result = VerificationCompleteStatus.result(status = "CERTIFIED", token = "sso_abc")
     assertEquals("sso_abc", result.getOrNull()?.token)
-  }
-
-  // endregion
-
-  // region 브릿지 페이로드 디코딩
-
-  @Test
-  fun `certified 페이로드 디코딩`() {
-    val dto = VerificationBridge.parse("""{"status":"certified","token":"sso_abc"}""")
-    assertEquals("certified", dto?.status)
-    assertEquals("sso_abc", dto?.token)
-  }
-
-  @Test
-  fun `token 없는 cancelled 페이로드 디코딩`() {
-    val dto = VerificationBridge.parse("""{"status":"cancelled"}""")
-    assertEquals("cancelled", dto?.status)
-    assertNull(dto?.token)
-  }
-
-  @Test
-  fun `문서에 없는 status 도 디코딩은 성공`() {
-    val dto = VerificationBridge.parse("""{"status":"whatever","extra":1}""")
-    assertEquals("whatever", dto?.status)
-  }
-
-  @Test
-  fun `깨진 JSON 은 null`() {
-    assertNull(VerificationBridge.parse("not json"))
   }
 
   // endregion
