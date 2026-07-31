@@ -2,7 +2,29 @@
 
 ## 1. 의존성 추가
 
-### 전환기 (현재) — composite build (`includeBuild`)
+### 공개 배포 — JitPack (별도 인증 없이 소비)
+
+퍼블릭 GitHub 저장소(`ZUM-Admin/ESTLoginKit-AOS`)를 JitPack이 태그 기준으로 빌드·배포합니다.
+소비앱은 토큰 인증 없이 바로 받을 수 있습니다.
+
+```kotlin
+// settings.gradle.kts — dependencyResolutionManagement.repositories
+maven("https://jitpack.io")
+```
+
+```kotlin
+// app/build.gradle.kts
+dependencies {
+  implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:<tag>") // 예: 2.0.0
+}
+```
+
+> 배포는 **git 태그 push**만으로 이뤄집니다(별도 publish 태스크 불필요). 태그를 올리면
+> JitPack이 `:estloginkit` 모듈만 빌드해 발행합니다(`jitpack.yml` 참고 — 예제 앱은 제외).
+> **정확한 의존성 좌표(멀티모듈 아티팩트명 포함)는 첫 태그 빌드 후**
+> `https://jitpack.io/#ZUM-Admin/ESTLoginKit-AOS` 의 "Get it" 스니펫에서 확인하세요.
+
+### 전환기 (로컬 개발) — composite build (`includeBuild`)
 
 이 레포는 **자체 버전 카탈로그**(`gradle/libs.versions.toml`)를 쓰므로, `projectDir` 로 include 하면
 호스트의 카탈로그와 alias 가 충돌합니다. 따라서 **composite build + 명시적 substitution** 으로 소비합니다.

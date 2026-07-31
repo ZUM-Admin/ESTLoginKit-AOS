@@ -32,7 +32,9 @@
 - `:estloginkit` — 라이브러리 (artifact `com.estaid:loginkit`)
 - `:example` — 통합 예제 앱. 네이티브 로그인·웹로그인·마이페이지·본인인증·토큰 교환/저장을 모두 다룹니다. (실행법은 아래 [예제 앱](#예제-앱) 참고)
 
-설치(의존성 추가)·매니페스트·배포 등 연동 상세는 [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) 를 참고하세요.
+공개 배포는 JitPack으로 받습니다 — `settings.gradle.kts` 에 `maven("https://jitpack.io")` 를 두고
+`implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:<tag>")`. 설치(의존성 추가)·매니페스트·배포 등
+연동 상세는 [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) 를 참고하세요.
 
 ## 예제 앱
 

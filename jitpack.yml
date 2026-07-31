@@ -1,0 +1,11 @@
+# JitPack 빌드 설정 — https://jitpack.io/#ZUM-Admin/ESTLoginKit-AOS
+#
+# - JDK 21 (프로젝트 jvmTarget/sourceCompatibility = 21)
+# - 라이브러리 모듈(:estloginkit)만 빌드·발행한다.
+#   :example 은 앱 모듈이며 local.properties 시크릿에 의존해 JitPack 환경에서 빌드되지 않으므로 제외한다.
+before_install:
+  - sdk install java 21.0.5-tem
+  - sdk use java 21.0.5-tem
+
+install:
+  - ./gradlew :estloginkit:publishToMavenLocal
