@@ -33,7 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.remember
 import com.estaid.loginkit.EstLoginManager
 import com.estaid.loginkit.internal.dto.SnsLoginBridge
-import com.estaid.loginkit.internal.webview.EstOneWebViewScreen
+import com.estaid.loginkit.internal.webview.WebViewScreen
 import com.estaid.loginkit.internal.webview.VerificationResultDelivery
 import com.estaid.loginkit.model.AuthError
 import com.estaid.loginkit.model.LoginPlatform
@@ -66,7 +66,7 @@ fun EstLoginWebView(
   val activity = LocalContext.current as? ComponentActivity
   var webViewRef: WebView? = null
 
-  EstOneWebViewScreen(
+  WebViewScreen(
     url = url,
     callbackUrl = callbackUrl,
     extraUserAgent = extraUserAgent,
@@ -98,7 +98,6 @@ fun EstLoginWebView(
  * 발급 중에는 로딩이 표시되고, 실패(만료 토큰 등)하면 [onError] 가 호출된다.
  *
  * // url 오버로드와 JVM 시그니처가 겹치지 않도록 accessToken 진입점은 별도 함수명으로 분리한다.
- * (본인인증 [EstIdentityVerificationWebViewWithAccessToken] 와 동일 이유)
  */
 @Composable
 fun EstLoginWebViewWithAccessToken(
@@ -206,7 +205,7 @@ fun EstMyPageWebView(
   val activity = LocalContext.current as? ComponentActivity
   var webViewRef: WebView? = null
 
-  EstOneWebViewScreen(
+  WebViewScreen(
     url = url,
     callbackUrl = null,
     extraUserAgent = extraUserAgent,
@@ -229,21 +228,22 @@ fun EstMyPageWebView(
 }
 
 /**
- * 본인인증 WebView 컴포저블 — SSO 부트스트랩 진입. (iOS `IdentityVerificationView(accessToken:)` 대칭. 권장)
+ * 본인인증 WebView 컴포저블 — SSO 부트스트랩 진입. (iOS `VerificationView(accessToken:)` 대칭)
  *
  * 유효한 accessToken만 넘기면 SDK가 ssoToken 발급 → SSO 부트스트랩 → 본인인증 진입까지
  * 처리한다. 발급 중에는 로딩 인디케이터가 표시되고, 실패(만료 토큰 등)하면 [onResult]로
  * `Result.failure`가 전달된다. 웹뷰 쿠키가 없거나 만료된 상태에서도 동작한다.
+ *
+ * 완료 통지는 [callbackUrl] 리다이렉트 한 경로로만 들어온다. 웹이 리다이렉트를 재시도해도
+ * [onResult] 는 1회만 호출된다.
  *
  * @param accessToken 앱이 보유한 유효한 accessToken. 만료 판단·갱신은 앱 책임.
  * @param callbackUrl 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. 브릿지가 우선이므로 생략해도 동작한다.
  * @param onResult 발급 실패 시 [AuthError.Server] (statusCode 401) 등, 사용자 취소 시
  *   [AuthError.Cancelled], 승격/병합 실패 시 [AuthError.VerificationFailed].
  */
-// url 오버로드와 JVM 시그니처가 동일해 같은 이름 오버로드로 둘 수 없다(@Composable 은 @JvmName 을
-// 무시하므로 JVM 레벨 분리가 불가). accessToken 진입점은 별도 함수명으로 분리한다.
 @Composable
-fun EstIdentityVerificationWebViewWithAccessToken(
+fun EstVerificationWebView(
   accessToken: String,
   callbackUrl: String? = null,
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
@@ -267,51 +267,12 @@ fun EstIdentityVerificationWebViewWithAccessToken(
     return
   }
 
-  EstIdentityVerificationWebView(
-    url = url,
-    callbackUrl = callbackUrl,
-    extraUserAgent = extraUserAgent,
-    inspectable = inspectable,
-    onBackPressed = onBackPressed,
-    onResult = onResult,
-  )
-}
-
-/**
- * 본인인증 WebView 컴포저블 — URL 직접 진입. (iOS `IdentityVerificationView(url:)` 대칭)
- *
- * 세션 쿠키가 살아있을 때만 임시 회원 세션이 전달된다. 쿠키가 없으면 로그인 화면이 뜨므로
- * 일반적으로는 accessToken 오버로드를 사용하라.
- *
- * 화면 콘텐츠와 완료 통지 수신은 SDK 가 담당하고, **언제 띄울지(정책)와 화면을 감싸 present/dismiss
- * 하는 것은 호스트**가 결정한다. 인증 여부는 [EstLoginManager.verificationStatus] 로 조회한다.
- *
- * 로그인 세션 쿠키(프로세스 전역 [android.webkit.CookieManager])를 공유하므로 임시 회원 세션이
- * 그대로 전달되며, 인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리한다.
- *
- * 완료 통지는 [callbackUrl] 리다이렉트 한 경로로만 들어온다. 웹이 리다이렉트를 재시도해도
- * [onResult] 는 1회만 호출된다.
- *
- * @param url 기본값은 [EstLoginManager.verificationUrl] — [callbackUrl] 을 조합해 구성한다.
- * @param callbackUrl 완료 시 리다이렉트될 앱 콜백 URL.
- *   **생략하면 결과를 받을 경로가 없어 [onResult] 가 호출되지 않는다.**
- * @param onResult 사용자 취소 시 [AuthError.Cancelled], 승격/병합 실패 시 [AuthError.VerificationFailed].
- */
-@Composable
-fun EstIdentityVerificationWebView(
-  url: String? = null,
-  callbackUrl: String? = null,
-  extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
-  inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
-  onBackPressed: () -> Unit = {},
-  onResult: (Result<VerificationResult>) -> Unit,
-) {
   val activity = LocalContext.current as? ComponentActivity
   var webViewRef: WebView? = null
   val delivery = remember(onResult) { VerificationResultDelivery(onResult) }
 
-  EstOneWebViewScreen(
-    url = url ?: EstLoginManager.verificationUrl(callbackUrl),
+  WebViewScreen(
+    url = url,
     callbackUrl = callbackUrl,
     extraUserAgent = extraUserAgent,
     inspectable = inspectable,

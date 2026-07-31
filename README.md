@@ -369,10 +369,10 @@ Authorization: Bearer {accessToken}
 > 인증 상태는 **통합회원 계정 단위**로 관리되어 모든 계열사에서 동일하게 조회됩니다. `status` 가
 > `CERTIFIED` 이면 `isVerified == true` 입니다.
 
-### 2. 본인인증 화면 — `EstIdentityVerificationWebView`
+### 2. 본인인증 화면 — `EstVerificationWebView`
 
 화면 콘텐츠와 완료 통지 수신은 SDK가 담당하고, **언제 띄울지(정책)와 화면을 감싸 present/dismiss
-하는 것은 호스트**가 합니다. iOS `IdentityVerificationView` / `IdentityVerificationViewController` 와 대칭이며,
+하는 것은 호스트**가 합니다. iOS `VerificationView` / `VerificationViewController` 와 대칭이며,
 Compose 컴포저블 하나로 두 쓰임(선언형 표시 · Activity 호스팅)을 모두 커버합니다.
 
 ```kotlin
@@ -381,24 +381,14 @@ data class VerificationResult(
   val token: String,
 )
 
-// 권장 — SSO 부트스트랩 진입. accessToken만 넘기면 발급→세션 수립→진입까지 SDK가 처리
-// (url 오버로드와 JVM 시그니처가 겹쳐 별도 함수명)
+// SSO 부트스트랩 진입. accessToken만 넘기면 발급→세션 수립→진입까지 SDK가 처리
 @Composable
-fun EstIdentityVerificationWebViewWithAccessToken(
+fun EstVerificationWebView(
   accessToken: String,          // 만료 판단·갱신은 앱 책임. 발급 실패는 onResult 로 failure 전달
   callbackUrl: String? = null,  // 완료 시 리다이렉트될 앱 콜백 URL (생략하면 결과 수신 불가)
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
   inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
   onBackPressed: () -> Unit = {},
-  onResult: (Result<VerificationResult>) -> Unit,
-)
-
-// 세션 쿠키가 살아있을 때의 URL 직접 진입
-@Composable
-fun EstIdentityVerificationWebView(
-  url: String? = null,          // 생략 시 verificationUrl(callbackUrl) 로 구성
-  callbackUrl: String? = null,
-  /* 이하 동일 */
   onResult: (Result<VerificationResult>) -> Unit,
 )
 ```
@@ -455,7 +445,7 @@ fun CheckoutButton(myAccessToken: String) {
   }) { Text("결제하기") }
 
   if (showVerification) {
-    EstIdentityVerificationWebViewWithAccessToken(
+    EstVerificationWebView(
       accessToken = myAccessToken,
       onBackPressed = { showVerification = false },
       onResult = { result ->
@@ -475,7 +465,7 @@ fun CheckoutButton(myAccessToken: String) {
 |------|------|
 | 본인인증 트리거(언제 띄울지) | **호스트** (결제 직전 등 비즈니스 시점) |
 | 인증 여부 조회 | `verificationStatus(accessToken)` (SDK) |
-| 인증 화면 제공 | `EstIdentityVerificationWebView` (SDK) |
+| 인증 화면 제공 | `EstVerificationWebView` (SDK) |
 | 화면 띄우기/닫기 | **호스트** |
 | 토큰 | **호스트가 주입** (SDK 미보관) |
 | 완료 통지 수신 | **SDK** (`callbackUrl` 리다이렉트를 가로채 전달, 결과는 1회만) |

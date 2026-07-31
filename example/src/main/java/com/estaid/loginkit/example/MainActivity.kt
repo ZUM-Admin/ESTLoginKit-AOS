@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.estaid.loginkit.EstLoginManager
 import com.estaid.loginkit.model.AuthResult
 import com.estaid.loginkit.model.LoginPlatform
-import com.estaid.loginkit.webview.EstIdentityVerificationWebViewWithAccessToken
+import com.estaid.loginkit.webview.EstVerificationWebView
 import com.estaid.loginkit.webview.EstLoginWebViewWithAccessToken
 import com.estaid.loginkit.webview.EstMyPageWebView
 import kotlinx.coroutines.launch
@@ -156,7 +156,7 @@ private fun ExampleApp(activity: ComponentActivity) {
       if (accessToken == null) {
         screen = Screen.MAIN
       } else {
-        EstIdentityVerificationWebViewWithAccessToken(
+        EstVerificationWebView(
           accessToken = accessToken,
           onBackPressed = { screen = Screen.MAIN },
           onResult = { result ->

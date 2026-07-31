@@ -42,7 +42,7 @@
 
   <application>
     <activity
-      android:name="com.estaid.loginkit.internal.webview.EstOneWebViewActivity"
+      android:name="com.estaid.loginkit.internal.webview.WebViewActivity"
       android:exported="false"
       android:theme="@style/Theme.EstLoginKit" />
 

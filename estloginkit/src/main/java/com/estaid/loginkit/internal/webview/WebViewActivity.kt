@@ -37,7 +37,7 @@ import kotlinx.coroutines.launch
  * 결과를 JS 콜백으로 다시 웹에 전달한다. callbackUrl 의 `code` 가 ssoToken 으로
  * 회수되면 RESULT_OK + ssoToken extra 로 종료한다.
  */
-internal class EstOneWebViewActivity : ComponentActivity() {
+internal class WebViewActivity : ComponentActivity() {
 
   companion object {
     const val EXTRA_LOGIN_URL = "extra_login_url"
@@ -54,7 +54,7 @@ internal class EstOneWebViewActivity : ComponentActivity() {
       extraUserAgent: String? = null,
       inspectable: Boolean = false,
       debugMode: Boolean = false,
-    ): Intent = Intent(context, EstOneWebViewActivity::class.java).apply {
+    ): Intent = Intent(context, WebViewActivity::class.java).apply {
       putExtra(EXTRA_LOGIN_URL, loginUrl)
       if (!callbackUrl.isNullOrBlank()) putExtra(EXTRA_CALLBACK_URL, callbackUrl)
       if (!extraUserAgent.isNullOrBlank()) putExtra(EXTRA_EXTRA_USER_AGENT, extraUserAgent)
@@ -80,7 +80,7 @@ internal class EstOneWebViewActivity : ComponentActivity() {
     val debugMode = intent.getBooleanExtra(EXTRA_DEBUG_MODE, false)
 
     setContent {
-      EstOneWebViewScreen(
+      WebViewScreen(
         url = loginUrl,
         callbackUrl = callbackUrl,
         extraUserAgent = extraUserAgent,
@@ -127,7 +127,7 @@ internal class EstOneWebViewActivity : ComponentActivity() {
 
     lifecycleScope.launch {
       val script = try {
-        val result = EstLoginManager.socialLogin(this@EstOneWebViewActivity, platform)
+        val result = EstLoginManager.socialLogin(this@WebViewActivity, platform)
         SnsLoginBridge.successScript(SnsLoginBridge.encodeSuccess(platform, result))
       } catch (e: AuthError) {
         val code = if (e is AuthError.Cancelled) "cancelled" else "sdk_error"

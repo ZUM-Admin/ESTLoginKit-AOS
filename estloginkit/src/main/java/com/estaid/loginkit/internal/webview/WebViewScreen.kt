@@ -76,7 +76,7 @@ private fun resolveInitialState(url: String): String? {
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable
-internal fun EstOneWebViewScreen(
+internal fun WebViewScreen(
   url: String,
   callbackUrl: String?,
   extraUserAgent: String?,

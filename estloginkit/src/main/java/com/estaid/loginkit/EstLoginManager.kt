@@ -23,7 +23,7 @@ import com.estaid.loginkit.internal.EstLog
 import com.estaid.loginkit.internal.SocialLoginInitializer
 import com.estaid.loginkit.internal.SsoBootstrap
 import com.estaid.loginkit.internal.network.AuthNetworkClient
-import com.estaid.loginkit.internal.webview.EstOneWebViewActivity
+import com.estaid.loginkit.internal.webview.WebViewActivity
 import com.estaid.loginkit.model.AuthError
 import com.estaid.loginkit.model.AuthResult
 import com.estaid.loginkit.model.LoginPlatform
@@ -120,13 +120,13 @@ object EstLoginManager {
       ) { result ->
         if (!continuation.isActive) return@register
         if (result.resultCode == Activity.RESULT_OK) {
-          val ssoToken = result.data?.getStringExtra(EstOneWebViewActivity.RESULT_SSO_TOKEN)
+          val ssoToken = result.data?.getStringExtra(WebViewActivity.RESULT_SSO_TOKEN)
           continuation.resume(Result.success(ssoToken))
         } else {
           continuation.resume(Result.failure(AuthError.Cancelled))
         }
       }
-      val intent = EstOneWebViewActivity.createIntent(
+      val intent = WebViewActivity.createIntent(
         context = activity,
         loginUrl = resolvedUrl,
         callbackUrl = cfg.callbackUrl,

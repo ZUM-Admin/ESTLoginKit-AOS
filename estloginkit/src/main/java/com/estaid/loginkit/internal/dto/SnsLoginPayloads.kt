@@ -21,9 +21,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-/** 웹 → 네이티브 소셜 로그인 요청. (iOS `RequestLoginDTO` 대칭) */
+/** 웹 → 네이티브 소셜 로그인 요청. (iOS `SNSLoginRequestPayload` 대칭) */
 @Serializable
-internal data class RequestLoginDto(
+internal data class SnsLoginRequestPayload(
   val type: String,
   val provider: String,
 )
@@ -53,8 +53,8 @@ internal object SnsLoginBridge {
     explicitNulls = false
   }
 
-  fun parseRequest(message: String): Result<RequestLoginDto> = runCatching {
-    json.decodeFromString<RequestLoginDto>(message)
+  fun parseRequest(message: String): Result<SnsLoginRequestPayload> = runCatching {
+    json.decodeFromString<SnsLoginRequestPayload>(message)
   }
 
   fun encodeSuccess(platform: LoginPlatform, result: AuthResult): String = json.encodeToString(
