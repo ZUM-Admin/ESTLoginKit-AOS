@@ -9,12 +9,6 @@
 > - 토큰 **저장 · 갱신 · 만료 처리**
 > - 로그아웃 시 **앱이 저장한 토큰 삭제**
 >
-> SDK 는 토큰을 보관하지 않으며, 토큰이 필요한 API(본인인증 조회, SSO 부트스트랩)에는 **호출 시 호스트가 토큰을 주입**합니다.
->
-> **토큰 저장은 평문 SharedPreferences 대신 Android Keystore 기반 암호화 저장을 권장**합니다
-> (Keystore 로 보호한 키로 암호화해 DataStore/파일에 저장). Jetpack Security 의
-> `EncryptedSharedPreferences` 는 deprecated 라 신규 적용에는 권장하지 않습니다.
-> (iOS 대응: Keychain)
 
 ## 한눈에 보기
 
@@ -42,7 +36,7 @@
 
 ## 예제 앱
 
-`:example` 은 SDK를 실제 앱에 통합하는 방법을 end-to-end로 보여줍니다. iOS 예제와 동일한 흐름입니다.
+`:example` 은 SDK를 실제 앱에 통합하는 방법을 end-to-end로 보여줍니다.
 
 **시크릿은 소스에 없습니다.** 모든 설정값은 `local.properties`(git 미추적) → `BuildConfig` → 런타임으로
 주입됩니다. Android Studio에서 프로젝트를 열고 아래 값만 채운 뒤 `:example` 을 실행하세요.
@@ -216,7 +210,7 @@ EstLoginWebView(onLoginCompleted = { ssoToken -> /* 토큰 교환은 호스트 *
 **유효한 accessToken을 넘기는 방식을 권장**합니다 — SDK가 일회성 ssoToken 발급
 (`GET {apiBaseUrl}/auth/sso/sso-token`) → SSO 부트스트랩
 (`GET {baseUrl}/auth/sso-login?code=...&redirect_url=...`) → 마이페이지 진입까지 처리하므로,
-WebView 쿠키가 없거나 만료된 상태에서도 로그인 화면 없이 열립니다. (iOS와 동일한 방식)
+WebView 쿠키가 없거나 만료된 상태에서도 로그인 화면 없이 열립니다.
 
 ```kotlin
 EstMyPageWebView(
@@ -238,7 +232,7 @@ EstLoginManager.logout()  // suspend — 카카오/네이버 네이티브 SDK �
 > **로그아웃은 반드시 호출하세요.** 카카오·네이버 네이티브 SDK 는 인증 토큰을 기기에 보관합니다.
 > `logout()` 은 카카오/네이버 네이티브 토큰만 정리합니다. **웹 세션(쿠키/스토리지)은 SDK 가
 > 건드리지 않습니다** — est 웹뷰는 열 때마다 accessToken 부트스트랩으로 세션을 새로 검증·수립하므로
-> 앱 로그아웃 시 로컬 웹 데이터를 지울 필요가 없습니다(iOS 대칭).
+> 앱 로그아웃 시 로컬 웹 데이터를 지울 필요가 없습니다.
 > **호스트 앱이 직접 저장한 accessToken/refreshToken 은 SDK 가 보관하지 않으므로 호스트가 직접 삭제**해야 합니다.
 
 ### 6. 본인인증 여부 조회
@@ -263,7 +257,7 @@ try {
 WebView 로그인은 **SSO 콜백 방식**으로 동작합니다. 로그인이 완료되면 `callbackUrl` 로 리다이렉트되고,
 SDK 가 그 URL 의 `code` 쿼리를 `ssoToken` 으로 추출해 전달합니다.
 
-완료 판정은 로그인 URL 의 `state` 유무에 따라 두 가지로 나뉩니다 (iOS 패리티):
+완료 판정은 로그인 URL 의 `state` 유무에 따라 두 가지로 나뉩니다:
 
 | 흐름 | 동작 |
 |---|---|
@@ -372,8 +366,7 @@ Authorization: Bearer {accessToken}
 ### 2. 본인인증 화면 — `EstVerificationWebView`
 
 화면 콘텐츠와 완료 통지 수신은 SDK가 담당하고, **언제 띄울지(정책)와 화면을 감싸 present/dismiss
-하는 것은 호스트**가 합니다. iOS `VerificationView` / `VerificationViewController` 와 대칭이며,
-Compose 컴포저블 하나로 두 쓰임(선언형 표시 · Activity 호스팅)을 모두 커버합니다.
+하는 것은 호스트**가 합니다. Compose 컴포저블 하나로 두 쓰임(선언형 표시 · Activity 호스팅)을 모두 커버합니다.
 
 ```kotlin
 // 본인인증 화면 완료 결과 (token = 본인인증 후 재발급된 ssoToken)
@@ -497,21 +490,4 @@ sealed class AuthError : Exception() {
 - [Kakao developers (Android)](https://developers.kakao.com/docs/latest/ko/android/getting-started)
 - [Naver Login SDK (Android)](https://developers.naver.com/docs/login/android/android.md)
 
----
 
-## 부록 — iOS 버전과의 API 매핑 (마이그레이션 참고용)
-
-이 SDK 는 [iOS ESTLoginKit](https://github.com/ZUM-Internet/ESTLoginKit-iOS) 과 API·동작을 정합시킵니다.
-양쪽을 함께 다루는 개발자를 위한 대조표이며, **Android 단독 사용에는 필요 없습니다.**
-
-| iOS | Android |
-|---|---|
-| `ESTLoginManager.shared` | `EstLoginManager` (object) |
-| `ESTLoginConfiguration.Builder` | `EstLoginConfiguration.Builder` |
-| `ESTEnvironment` (`.production`/`.development`) | `EstEnvironment` (`PRODUCTION`/`DEVELOPMENT`) |
-| `useEnvironment(_:)` | `useEnvironment(...)` |
-| `login(with:)` | `login(activity, platform)` |
-| `loginURL(redirectURL:state:silent:)` | `loginUrl(redirectUrl, state, silent)` |
-| `LoginWebView` / `MyPageWebView` | `EstLoginWebView` / `EstMyPageWebView` |
-| `verificationStatus(accessToken:)` | `verificationStatus(accessToken)` |
-| `logout()` | `logout()` |

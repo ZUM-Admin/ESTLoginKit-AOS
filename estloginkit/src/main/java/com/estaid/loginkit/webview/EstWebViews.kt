@@ -43,14 +43,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
- * 로그인 WebView 컴포저블. (iOS `LoginWebView` 대칭)
+ * 로그인 WebView 컴포저블.
  *
  * 자체 Compose 네비게이션에 임베드할 때 사용한다. (Activity 기반은 [EstLoginManager.login])
  * 웹의 SNS 네이티브 로그인 요청을 처리하며, callbackUrl 의 `code` 가 회수되면 [onLoginCompleted]
  * 로 ssoToken 을 전달한다. (토큰 교환은 호스트 책임)
  *
  * @param url 기본값은 [EstLoginManager.bootstrapLoginUrl] — 항상 `/auth/sso-login` 부트스트랩으로
- *   진입한다(iOS 기본 방식). 부트스트랩을 우회하려면 [EstLoginManager.loginUrl] 을 직접 넘겨라.
+ *   진입한다. 부트스트랩을 우회하려면 [EstLoginManager.loginUrl] 을 직접 넘겨라.
  */
 @Composable
 fun EstLoginWebView(
@@ -142,7 +142,7 @@ fun EstLoginWebViewWithAccessToken(
 }
 
 /**
- * 마이페이지 WebView 컴포저블 — SSO 부트스트랩 진입. (iOS `MyPageWebView(accessToken:)` 대칭. 권장)
+ * 마이페이지 WebView 컴포저블 — SSO 부트스트랩 진입. (권장)
  *
  * 유효한 accessToken만 넘기면 SDK가 ssoToken 발급 → SSO 부트스트랩 → 마이페이지 진입까지
  * 처리한다. 발급 중에는 로딩 인디케이터가 표시되고, 실패(만료 토큰 등)하면 [onError]가
@@ -188,7 +188,7 @@ fun EstMyPageWebView(
 }
 
 /**
- * 마이페이지 WebView 컴포저블 — URL 직접 진입. (iOS `MyPageWebView(url:)` 대칭)
+ * 마이페이지 WebView 컴포저블 — URL 직접 진입.
  *
  * 로그인 세션 쿠키(프로세스 전역 [android.webkit.CookieManager])가 살아있을 때만 접근된다.
  * 쿠키가 없으면 로그인 화면이 뜨므로 일반적으로는 accessToken 오버로드를 사용하라.
@@ -228,7 +228,7 @@ fun EstMyPageWebView(
 }
 
 /**
- * 본인인증 WebView 컴포저블 — SSO 부트스트랩 진입. (iOS `VerificationView(accessToken:)` 대칭)
+ * 본인인증 WebView 컴포저블 — SSO 부트스트랩 진입.
  *
  * 유효한 accessToken만 넘기면 SDK가 ssoToken 발급 → SSO 부트스트랩 → 본인인증 진입까지
  * 처리한다. 발급 중에는 로딩 인디케이터가 표시되고, 실패(만료 토큰 등)하면 [onResult]로

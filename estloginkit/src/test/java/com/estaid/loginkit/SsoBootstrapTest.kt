@@ -19,7 +19,7 @@ import com.estaid.loginkit.internal.SsoBootstrap
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** SSO 부트스트랩 URL 빌더. (iOS `SSOLoginURLTests` 대칭) */
+/** SSO 부트스트랩 URL 빌더 검증. */
 class SsoBootstrapTest {
 
   private val base = "https://test.estoneid.com"

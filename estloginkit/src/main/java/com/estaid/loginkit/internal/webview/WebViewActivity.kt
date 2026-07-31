@@ -31,7 +31,7 @@ import com.estaid.loginkit.model.LoginPlatform
 import kotlinx.coroutines.launch
 
 /**
- * WebView 로그인 호스트 액티비티. (iOS `ESTOneWebViewController` + 호스트 present 역할 통합)
+ * WebView 로그인 호스트 액티비티. 화면 present 역할까지 통합한다.
  *
  * 웹에서 SNS 네이티브 로그인을 요청하면 [EstLoginManager.socialLogin] 으로 처리하고,
  * 결과를 JS 콜백으로 다시 웹에 전달한다. callbackUrl 의 `code` 가 ssoToken 으로

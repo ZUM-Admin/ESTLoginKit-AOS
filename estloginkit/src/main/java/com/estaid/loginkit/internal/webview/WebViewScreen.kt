@@ -48,12 +48,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.estaid.loginkit.internal.EstLog
 
-/** 로그 출력용. `code`(ssoToken)는 저장·로그 금지이므로 값을 마스킹한다. (iOS `redactedForLog` 대칭) */
+/** 로그 출력용. `code`(ssoToken)는 저장·로그 금지이므로 값을 마스킹한다. */
 private fun redactForLog(url: String): String =
   Regex("([?&]code=)[^&]*").replace(url) { "${it.groupValues[1]}***" }
 
 /**
- * 로그인 완료 감지(state 매칭)의 대상 state를 요청 URL에서 추출한다. (iOS `resolveInitialState` 대칭)
+ * 로그인 완료 감지(state 매칭)의 대상 state를 요청 URL에서 추출한다.
  *
  * 1) top-level `state` — `/user/login?...&state=` 직접 진입
  * 2) 없으면 부트스트랩(`/auth/sso-login?redirect_url=<.../user/login?...&state=...>`)의
@@ -70,7 +70,7 @@ private fun resolveInitialState(url: String): String? {
 }
 
 /**
- * SDK 내부 WebView 화면. (iOS `ESTOneWebViewController` 대칭)
+ * SDK 내부 WebView 화면.
  *
  * 로그인 / 마이페이지 모두 이 컴포저블을 재사용한다.
  */
@@ -228,7 +228,7 @@ private class EstWebViewClient(
     EstLog.debug("navigation: ${redactForLog(url)}")
 
     // Google OAuth URL → Android Chrome(비 WebView) UA 로 스왑해 embedded browser 차단 회피.
-    // iOS 대칭: 일반 구글 도메인만 감지한다 (서비스별 OAuth 도메인을 하드코딩하지 않음).
+    // 일반 구글 도메인만 감지한다 (서비스별 OAuth 도메인을 하드코딩하지 않음).
     if (isGoogleLoginUrl(url)) {
       view.settings.userAgentString = buildAndroidChromeUserAgent(extraUserAgent)
     }
@@ -245,7 +245,7 @@ private class EstWebViewClient(
       return true
     }
 
-    // callbackUrl prefix + code 쿼리 매칭 → ssoToken 회수 (iOS 패리티)
+    // callbackUrl prefix + code 쿼리 매칭 → ssoToken 회수
     if (!callbackUrl.isNullOrBlank() && url.startsWith(callbackUrl)) {
       val ssoToken = runCatching { Uri.parse(url).getQueryParameter("code") }.getOrNull()
       if (!ssoToken.isNullOrBlank()) {

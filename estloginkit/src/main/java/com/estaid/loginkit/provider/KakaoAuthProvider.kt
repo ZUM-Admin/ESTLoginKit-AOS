@@ -30,7 +30,7 @@ import kotlin.coroutines.resumeWithException
 import com.kakao.sdk.common.model.AuthError as KakaoAuthError
 
 /**
- * 카카오 네이티브 로그인. (iOS `KakaoAuthProvider` 대칭)
+ * 카카오 네이티브 로그인.
  *
  * 카카오톡 앱이 가능하면 앱 로그인, 아니면 카카오계정 웹 로그인으로 폴백한다.
  */

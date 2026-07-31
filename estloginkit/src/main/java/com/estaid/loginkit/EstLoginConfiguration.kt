@@ -20,9 +20,9 @@ import com.estaid.loginkit.model.KakaoConfiguration
 import com.estaid.loginkit.model.NaverConfiguration
 
 /**
- * ESTLoginKit 설정. (iOS `ESTLoginConfiguration` 대칭)
+ * ESTLoginKit 설정.
  *
- * iOS 와 동일하게 Builder 로 생성한다:
+ * Builder 로 생성한다:
  * ```
  * val config = EstLoginConfiguration.Builder(clientId = "...")
  *   .useEnvironment(EstEnvironment.DEVELOPMENT) // 기본값: PRODUCTION
@@ -39,7 +39,7 @@ class EstLoginConfiguration private constructor(
   val environment: EstEnvironment,
   val kakaoConfig: KakaoConfiguration?,
   val naverConfig: NaverConfiguration?,
-  // --- Android WebView 옵션 (iOS 는 View 파라미터로 받지만 Android 는 편의상 config 로도 노출) ---
+  // --- Android WebView 옵션 (편의상 config 로도 노출) ---
   val callbackUrl: String?,
   val extraUserAgent: String?,
   val webViewInspectable: Boolean,

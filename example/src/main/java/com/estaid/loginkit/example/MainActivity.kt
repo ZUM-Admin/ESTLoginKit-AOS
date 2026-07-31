@@ -51,7 +51,7 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-/** 전체 화면 상태. (iOS ContentView 의 sheet 전환 대칭) */
+/** 전체 화면 상태. */
 private enum class Screen { MAIN, WEB_LOGIN, MYPAGE, VERIFICATION }
 
 class MainActivity : ComponentActivity() {
@@ -90,7 +90,7 @@ private fun ExampleApp(activity: ComponentActivity) {
   }
 
   // 앱이 세션 SSoT — SDK 는 유효한 accessToken 을 받는다고 가정하므로,
-  // 만료 판단·갱신은 호출 전에 앱이 처리한다. (iOS validAccessToken 대칭)
+  // 만료 판단·갱신은 호출 전에 앱이 처리한다.
   suspend fun validAccessToken(): String? {
     val stored = tokenStore.load() ?: return null
     if (stored.expiryDate.time > System.currentTimeMillis()) return stored.accessToken

@@ -16,12 +16,12 @@
 package com.estaid.loginkit.model
 
 /**
- * 네이버 로그인 설정. (iOS `NaverConfiguration` 대칭)
+ * 네이버 로그인 설정.
  *
  * @param appName 네이버 로그인 화면에 표시할 앱 이름
  * @param clientId 네이버 클라이언트 ID
  * @param clientSecret 네이버 클라이언트 시크릿
- * @param urlScheme iOS 콜백용 URL 스킴 — Android 에서는 사용하지 않으며 크로스플랫폼 파라미터 정합을 위해 둔다.
+ * @param urlScheme Android 에서는 사용하지 않는다. 크로스플랫폼 파라미터 정합을 위해 둔다.
  */
 data class NaverConfiguration(
   val appName: String,

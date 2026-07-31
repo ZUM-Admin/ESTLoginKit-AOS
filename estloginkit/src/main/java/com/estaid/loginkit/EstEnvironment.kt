@@ -16,7 +16,7 @@
 package com.estaid.loginkit
 
 /**
- * 통합회원(estoneid) 실행 환경. (iOS `ESTEnvironment` 대칭)
+ * 통합회원(estoneid) 실행 환경.
  *
  * 환경마다 로그인 웹 host 와 API host 가 쌍으로 다르므로, 앱은 환경만 선택하고
  * SDK 가 두 URL 을 소유한다 — 웹/API host 불일치를 원천 차단한다.

@@ -16,7 +16,7 @@
 package com.estaid.loginkit.model
 
 /**
- * 회원 본인인증 상태 조회 결과. (iOS `VerificationStatus` 대칭)
+ * 회원 본인인증 상태 조회 결과.
  *
  * 응답은 통합회원 계정 단위의 인증 완료 여부(`CERTIFIED`/`UNCERTIFIED`)만 제공한다.
  * [isVerified] 가 `true` 이면 `CERTIFIED` 이다.

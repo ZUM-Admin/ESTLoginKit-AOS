@@ -21,7 +21,7 @@ import com.estaid.loginkit.model.VerificationResult
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
- * 본인인증 완료 통지를 호스트에 1회만 전달한다. (iOS `hasCompleted` 가드 대칭)
+ * 본인인증 완료 통지를 호스트에 1회만 전달한다.
  *
  * 통지는 callbackUrl 리다이렉트 한 경로로만 들어오지만, 웹이 리다이렉트를 재시도해
  * 여러 번 매칭될 수 있으므로 첫 전달만 통과시킨다. (임의 스레드 호출 대비 원자적으로 가드한다)

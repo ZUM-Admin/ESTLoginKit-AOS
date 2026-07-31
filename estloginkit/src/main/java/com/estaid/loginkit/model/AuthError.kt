@@ -16,7 +16,7 @@
 package com.estaid.loginkit.model
 
 /**
- * SDK 공개 에러 타입. (iOS `AuthError` 대칭)
+ * SDK 공개 에러 타입.
  *
  * - [UnsupportedPlatform] : 지원하지 않는 로그인 플랫폼
  * - [Cancelled] : 사용자 취소

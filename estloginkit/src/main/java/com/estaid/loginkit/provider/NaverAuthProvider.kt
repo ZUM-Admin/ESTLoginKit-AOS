@@ -28,7 +28,7 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
- * 네이버 네이티브 로그인. (iOS `NaverAuthProvider` 대칭)
+ * 네이버 네이티브 로그인.
  */
 internal class NaverAuthProvider : AuthProvider {
 

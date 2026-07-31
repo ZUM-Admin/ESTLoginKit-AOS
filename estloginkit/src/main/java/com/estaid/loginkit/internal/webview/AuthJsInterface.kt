@@ -19,7 +19,7 @@ import android.webkit.JavascriptInterface
 import com.estaid.loginkit.internal.EstLog
 
 /**
- * 웹 → 네이티브 JS 브릿지. (iOS `WKScriptMessageHandler` 대칭)
+ * 웹 → 네이티브 JS 브릿지.
  *
  * 웹 페이지에서 `AndroidInterface.<method>(...)` 형태로 호출한다.
  */

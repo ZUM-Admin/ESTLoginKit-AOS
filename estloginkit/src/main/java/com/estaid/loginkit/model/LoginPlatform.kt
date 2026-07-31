@@ -16,7 +16,7 @@
 package com.estaid.loginkit.model
 
 /**
- * 네이티브 로그인 플랫폼. (iOS `LoginPlatform` 대칭)
+ * 네이티브 로그인 플랫폼.
  *
  * 구글/애플은 네이티브 SDK 를 쓰지 않고 WebView OAuth 경로로 일원화되므로 여기 포함되지 않는다.
  */

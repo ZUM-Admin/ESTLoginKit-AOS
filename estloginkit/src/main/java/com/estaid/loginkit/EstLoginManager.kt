@@ -43,7 +43,7 @@ import java.net.URLEncoder
 import kotlin.coroutines.resume
 
 /**
- * ESTLoginKit 진입점. (iOS `ESTLoginManager.shared` 대칭)
+ * ESTLoginKit 진입점.
  *
  * SDK 는 stateless 이다 — ssoToken→accessToken 교환, 토큰 저장/갱신/만료는 호스트 책임.
  */
@@ -78,7 +78,7 @@ object EstLoginManager {
 
   // region 네이티브 로그인 (카카오/네이버)
 
-  /** 네이티브 소셜 로그인. (iOS `login(with:)`) */
+  /** 네이티브 소셜 로그인. */
   suspend fun login(activity: ComponentActivity, platform: LoginPlatform): AuthResult =
     socialLogin(activity, platform)
 
@@ -94,10 +94,10 @@ object EstLoginManager {
   // region 웹뷰 로그인 (ssoToken 회수)
 
   /**
-   * WebView 로그인 화면을 띄우고 ssoToken 을 회수한다. (Android 편의 — iOS 는 `LoginWebView` 사용)
+   * WebView 로그인 화면을 띄우고 ssoToken 을 회수한다. (Android 편의 메서드)
    * 토큰 교환은 호스트 책임이다.
    *
-   * [url] 을 직접 주지 않으면 **항상 `/auth/sso-login` 부트스트랩**으로 진입한다(iOS 기본 방식).
+   * [url] 을 직접 주지 않으면 **항상 `/auth/sso-login` 부트스트랩**으로 진입한다.
    * 부트스트랩이 웹 세션을 먼저 검증·정리하므로 쿠키 잔존 상태 차이 없이 동일하게 로그인 페이지로 진입한다.
    *
    * @return ssoToken (취소 시 [AuthError.Cancelled])
@@ -142,7 +142,7 @@ object EstLoginManager {
 
   // region URL 빌더
 
-  /** 로그인 URL 빌더. (iOS `loginURL(redirectURL:state:silent:)`) */
+  /** 로그인 URL 빌더. */
   fun loginUrl(redirectUrl: String? = null, state: String? = null, silent: Boolean = false): String {
     val cfg = requireConfig()
     val base = cfg.baseUrl
@@ -159,7 +159,6 @@ object EstLoginManager {
 
   /**
    * 로그인 부트스트랩 URL 빌더 — 내부 `/user/login` 을 항상 `/auth/sso-login` 으로 감싼다.
-   * (iOS 기본 진입 방식과 동일)
    *
    * `code` 없이 열리며, 웹이 기존 est 세션을 먼저 검증·정리한 뒤 로그인 페이지로 라우팅한다.
    * 따라서 쿠키 잔존 상태에 상관없이 항상 동일하게 진입한다. accessToken 으로 세션까지 수립하려면
@@ -172,7 +171,6 @@ object EstLoginManager {
     // SsoBootstrap 이 한 번 더 인코딩하게 한다 → 이중 인코딩. 디코드된 값(단일 인코딩)을 넘기면
     // SDK 의 중첩 state 추출([resolveInitialState])이 깨져 top-level state 가 없는 것으로 판정되고,
     // union-user-api 콜백에서 조기 완료(callbackUrl 매칭)돼 EZSID 세션이 커밋되지 않는다.
-    // (iOS LoginFullScreenView.bootstrapLoginURL 대칭)
     val inner = URI(loginUrl(redirectUrl, state))
     val redirectValue = inner.rawPath + inner.rawQuery?.let { "?$it" }.orEmpty()
     return SsoBootstrap.ssoLoginUrl(
@@ -182,12 +180,12 @@ object EstLoginManager {
     )
   }
 
-  /** 마이페이지 URL. (iOS `mypageURL`) */
+  /** 마이페이지 URL. */
   val mypageUrl: String
     get() = "${requireConfig().baseUrl}/mypage/setting"
 
   /**
-   * 본인인증 화면 URL. (iOS `verificationURL(callbackURL:)`)
+   * 본인인증 화면 URL.
    *
    * 웹뷰가 임시 회원의 로그인 세션 쿠키를 갖고 있어야 하며, 인증 회원 승격과 CI 충돌 해소는
    * 웹뷰가 자체 처리한다. 완료 통지는 [callbackUrl] 리다이렉트로만 전달된다.
@@ -205,7 +203,7 @@ object EstLoginManager {
   // region SSO 부트스트랩 (웹뷰 세션 수립)
 
   /**
-   * 일회성 SSO 토큰을 발급받는다. (iOS `issueSSOToken(accessToken:)` 대칭)
+   * 일회성 SSO 토큰을 발급받는다.
    *
    * `GET {apiBaseUrl}/auth/sso/sso-token` (`Authorization: Bearer`)
    *
@@ -233,7 +231,7 @@ object EstLoginManager {
   }
 
   /**
-   * 마이페이지로 이동하는 SSO 부트스트랩 URL. (iOS `authorizedMypageRequest(accessToken:)` 대칭)
+   * 마이페이지로 이동하는 SSO 부트스트랩 URL.
    * 웹이 code 검증 후 자체 세션을 수립하고 이동시키므로 웹뷰 쿠키가 없어도 열린다.
    *
    * ssoToken 은 유효 60초이므로 웹뷰를 여는 시점마다 새로 호출해야 한다.
@@ -270,7 +268,7 @@ object EstLoginManager {
     )
   }
 
-  /** 본인인증으로 이동하는 SSO 부트스트랩 URL. (iOS `authorizedVerificationRequest(accessToken:callbackURL:)` 대칭) */
+  /** 본인인증으로 이동하는 SSO 부트스트랩 URL. */
   suspend fun authorizedVerificationUrl(accessToken: String, callbackUrl: String? = null): String {
     val ssoToken = issueSsoToken(accessToken)
     return SsoBootstrap.ssoLoginUrl(
@@ -285,7 +283,7 @@ object EstLoginManager {
   // region 로그아웃
 
   /**
-   * 로그아웃 — best-effort. (iOS `logout()`)
+   * 로그아웃 — best-effort.
    *
    * 네이버/카카오 네이티브 토큰을 각각 독립적으로 삭제한다.
    *
@@ -326,7 +324,7 @@ object EstLoginManager {
   // region 본인인증 조회
 
   /**
-   * 회원 본인인증 상태 조회. (iOS `verificationStatus(accessToken:)`)
+   * 회원 본인인증 상태 조회.
    *
    * SDK 는 토큰을 보관하지 않으므로 호스트가 [accessToken] 을 주입한다.
    * `GET /members/v1/certification/status` 를 `Authorization: Bearer {accessToken}` 으로 호출하며,

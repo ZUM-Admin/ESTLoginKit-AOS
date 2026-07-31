@@ -22,7 +22,7 @@ import com.navercorp.nid.NidOAuth
 import com.navercorp.nid.core.data.datastore.NidOAuthInitializingCallback
 
 /**
- * 카카오/네이버 SDK 1회 초기화. (iOS `ESTLoginManager.initialize` 내부 로직 대칭)
+ * 카카오/네이버 SDK 1회 초기화.
  */
 internal class SocialLoginInitializer(
   private val context: Context,

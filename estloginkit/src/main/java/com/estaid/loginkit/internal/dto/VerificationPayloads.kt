@@ -20,7 +20,7 @@ import com.estaid.loginkit.model.AuthError
 import com.estaid.loginkit.model.VerificationResult
 
 /**
- * 본인인증 종료 상태. (iOS `VerificationCompleteStatus` 대칭)
+ * 본인인증 종료 상태.
  *
  * callbackUrl 리다이렉트의 `?status=` 값으로 전달된다.
  */
@@ -41,7 +41,7 @@ internal enum class VerificationCompleteStatus(val rawValue: String) {
 
     /**
      * 통지 값을 호스트 결과로 해석한다.
-     * 알 수 없는 status 나 통지 누락(null)은 실패로 처리한다. (iOS 패리티)
+     * 알 수 없는 status 나 통지 누락(null)은 실패로 처리한다.
      */
     fun result(status: String?, token: String?): Result<VerificationResult> =
       when (from(status)) {

@@ -25,7 +25,7 @@ import java.net.URL
 import java.util.Date
 
 /**
- * ssoToken(OAuth code) → EST 통합회원 access/refresh 토큰 발급. (iOS `EstoneAuth` 대칭)
+ * ssoToken(OAuth code) → EST 통합회원 access/refresh 토큰 발급.
  *
  * SDK 가 아니라 **호스트(예제 앱) 책임**인 토큰 교환 계층이다. SDK 는 stateless 이므로
  * 이 계층이 ssoToken 을 access/refresh 로 바꾸고 저장한다.
@@ -136,7 +136,7 @@ object EstoneAuth {
 }
 
 /**
- * EstoneToken 을 SharedPreferences 에 저장한다. (iOS `TokenStore` 대칭)
+ * EstoneToken 을 SharedPreferences 에 저장한다.
  * 예제 앱이므로 SharedPreferences 를 쓴다. 실서비스는 EncryptedSharedPreferences/Keystore 권장.
  */
 class TokenStore(context: Context) {

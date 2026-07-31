@@ -16,7 +16,7 @@
 package com.estaid.loginkit.internal.webview
 
 /**
- * 웹 → 네이티브 JS 브릿지 메시지 종류. (iOS `WebViewMessage` 대칭)
+ * 웹 → 네이티브 JS 브릿지 메시지 종류.
  */
 internal enum class WebViewMessage(val rawValue: String) {
   REQUEST_SNS_LOGIN("requestSnsLogin"),

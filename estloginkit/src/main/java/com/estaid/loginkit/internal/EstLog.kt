@@ -18,7 +18,7 @@ package com.estaid.loginkit.internal
 import android.util.Log
 
 /**
- * ESTLoginKit 공통 로거. (iOS `ESTLog` 대칭)
+ * ESTLoginKit 공통 로거.
  *
  * SDK 의 모든 로그는 이걸로 찍는다(`android.util.Log` 직접 사용 금지).
  * 모든 라인은 `ESTLoginKit` 태그로 묶인다.

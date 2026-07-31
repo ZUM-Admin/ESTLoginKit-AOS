@@ -19,7 +19,7 @@ import java.net.URI
 import java.net.URLEncoder
 
 /**
- * SSO 부트스트랩 URL 빌더. (iOS `SSOToken.swift`의 `ssoLoginURL` 대칭)
+ * SSO 부트스트랩 URL 빌더.
  *
  * `GET {baseUrl}/auth/sso-login?code={ssoToken}&redirect_url={URL인코딩된 내부 경로}`
  *

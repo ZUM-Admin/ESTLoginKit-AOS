@@ -21,14 +21,14 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-/** 웹 → 네이티브 소셜 로그인 요청. (iOS `SNSLoginRequestPayload` 대칭) */
+/** 웹 → 네이티브 소셜 로그인 요청. */
 @Serializable
 internal data class SnsLoginRequestPayload(
   val type: String,
   val provider: String,
 )
 
-/** 네이티브 → 웹 성공 페이로드. (iOS `SNSLoginSuccessPayload` 대칭) */
+/** 네이티브 → 웹 성공 페이로드. */
 @Serializable
 internal data class SnsLoginSuccessPayload(
   val provider: String,
@@ -38,7 +38,7 @@ internal data class SnsLoginSuccessPayload(
   val email: String = "",
 )
 
-/** 네이티브 → 웹 에러 페이로드. (iOS `SNSLoginErrorPayload` 대칭) */
+/** 네이티브 → 웹 에러 페이로드. */
 @Serializable
 internal data class SnsLoginErrorPayload(
   val code: String,

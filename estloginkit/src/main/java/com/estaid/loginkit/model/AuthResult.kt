@@ -16,7 +16,7 @@
 package com.estaid.loginkit.model
 
 /**
- * 네이티브 소셜 로그인 결과. (iOS `AuthResult` 대칭)
+ * 네이티브 소셜 로그인 결과.
  *
  * SDK 는 stateless 이므로 이 토큰을 보관하지 않는다 — 호스트가 받아서
  * accessToken/refreshToken 교환·저장을 직접 수행한다.

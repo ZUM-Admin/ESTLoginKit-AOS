@@ -19,7 +19,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * `GET /auth/sso/sso-token` 응답. (iOS `SSOTokenResponseDTO` 대칭)
+ * `GET /auth/sso/sso-token` 응답.
  *
  * `{ "result": { "ssoToken": "..." }, "message": "" }`
  */

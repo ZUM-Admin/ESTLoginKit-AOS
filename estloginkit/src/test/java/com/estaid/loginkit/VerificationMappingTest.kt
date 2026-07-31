@@ -21,7 +21,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** iOS `VerificationResultMappingTests` 대칭. */
+/** 본인인증 완료 status → VerificationResult 매핑 검증. */
 class VerificationMappingTest {
 
   // region 완료 통지 → Result 매핑

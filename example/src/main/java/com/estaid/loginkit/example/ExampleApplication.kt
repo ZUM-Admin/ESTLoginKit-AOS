@@ -25,8 +25,7 @@ import com.estaid.loginkit.model.NaverConfiguration
 /**
  * ESTLoginKit 예제 앱 진입점.
  *
- * 모든 시크릿은 local.properties → BuildConfig 경로로 주입된다. (소스에 하드코딩 없음,
- * iOS 예제의 Config.xcconfig 대칭)
+ * 모든 시크릿은 local.properties → BuildConfig 경로로 주입된다. (소스에 하드코딩 없음)
  */
 class ExampleApplication : Application() {
   override fun onCreate() {

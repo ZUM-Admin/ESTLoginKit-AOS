@@ -16,7 +16,7 @@
 package com.estaid.loginkit.model
 
 /**
- * 카카오 로그인 설정. (iOS `KakaoConfiguration` 대칭)
+ * 카카오 로그인 설정.
  *
  * @param appKey 카카오 네이티브 앱 키
  * @param customScheme debug/release 동일 키 사용 시 콜백 충돌 방지용 커스텀 스킴

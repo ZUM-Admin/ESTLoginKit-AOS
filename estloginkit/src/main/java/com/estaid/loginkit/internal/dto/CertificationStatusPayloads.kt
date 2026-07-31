@@ -19,7 +19,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * `GET /members/v1/certification/status` 응답. (iOS `CertificationStatusResponseDTO` 대칭)
+ * `GET /members/v1/certification/status` 응답.
  *
  * 공통 응답: `{ "result": { "status": "CERTIFIED" | "UNCERTIFIED" }, "message": "" }`
  *
