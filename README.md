@@ -32,9 +32,24 @@
 - `:estloginkit` — 라이브러리 (artifact `com.estaid:loginkit`)
 - `:example` — 통합 예제 앱. 네이티브 로그인·웹로그인·마이페이지·본인인증·토큰 교환/저장을 모두 다룹니다. (실행법은 아래 [예제 앱](#예제-앱) 참고)
 
-공개 배포는 JitPack으로 받습니다 — `settings.gradle.kts` 에 `maven("https://jitpack.io")` 를 두고
-`implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:<tag>")`. 설치(의존성 추가)·매니페스트·배포 등
-연동 상세는 [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) 를 참고하세요.
+공개 배포는 JitPack으로 받습니다.
+
+```kotlin
+// settings.gradle.kts — dependencyResolutionManagement.repositories
+google()
+mavenCentral()                                                  // 네이버 SDK
+maven("https://jitpack.io")                                     // ESTLoginKit
+maven("https://devrepo.kakao.com/nexus/content/groups/public/") // 카카오 SDK
+
+// app/build.gradle.kts
+dependencies {
+    implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.0.0")
+}
+```
+
+> 카카오·네이버 SDK 는 전이 의존성으로 자동 포함되므로 **직접 추가하지 않습니다.** 다만 위 저장소는
+> 소비 앱에 선언해야 합니다(카카오 SDK 는 카카오 전용 저장소에만 존재). 매니페스트·배포 등 연동 상세는
+> [INTEGRATION_GUIDE.md](INTEGRATION_GUIDE.md) 를 참고하세요.
 
 ## 예제 앱
 

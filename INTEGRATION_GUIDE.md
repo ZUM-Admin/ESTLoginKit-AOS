@@ -9,20 +9,30 @@
 
 ```kotlin
 // settings.gradle.kts — dependencyResolutionManagement.repositories
-maven("https://jitpack.io")
+google()
+mavenCentral()                                                  // 네이버 SDK(com.navercorp.nid:oauth)
+maven("https://jitpack.io")                                     // ESTLoginKit
+maven("https://devrepo.kakao.com/nexus/content/groups/public/") // 카카오 SDK(com.kakao.sdk:v2-user)
 ```
 
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-  implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:<tag>") // 예: 2.0.0
+  implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.0.0")
 }
 ```
 
+> **카카오/네이버 SDK 는 직접 추가하지 마세요** — ESTLoginKit 의 전이 의존성으로 자동 포함됩니다.
+> 대신 그 전이 의존성이 **소비 앱의 저장소**에서 해석되므로(현대 Gradle 은 `FAIL_ON_PROJECT_REPOS`
+> 로 라이브러리 저장소를 상속하지 않음), 위 저장소를 소비 앱 `settings.gradle.kts` 에 선언해야 합니다:
+> - `mavenCentral()`·`google()` — 대부분 프로젝트에 이미 있음 (네이버 SDK 포함)
+> - `devrepo.kakao.com` — 카카오 SDK 는 **카카오 전용 저장소에만** 있어 반드시 추가 (SDK 가 카카오에
+>   무조건 의존하므로 카카오 로그인 미사용이어도 필요)
+> - `jitpack.io` — ESTLoginKit 본체
+>
 > 배포는 **git 태그 push**만으로 이뤄집니다(별도 publish 태스크 불필요). 태그를 올리면
 > JitPack이 `:estloginkit` 모듈만 빌드해 발행합니다(`jitpack.yml` 참고 — 예제 앱은 제외).
-> **정확한 의존성 좌표(멀티모듈 아티팩트명 포함)는 첫 태그 빌드 후**
-> `https://jitpack.io/#ZUM-Admin/ESTLoginKit-AOS` 의 "Get it" 스니펫에서 확인하세요.
+> 배포된 버전 목록·빌드 상태는 `https://jitpack.io/#ZUM-Admin/ESTLoginKit-AOS` 에서 확인하세요.
 
 ### 전환기 (로컬 개발) — composite build (`includeBuild`)
 
