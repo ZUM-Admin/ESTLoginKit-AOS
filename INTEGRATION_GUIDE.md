@@ -18,7 +18,7 @@ maven("https://devrepo.kakao.com/nexus/content/groups/public/") // 카카오 SDK
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-  implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.0.0")
+  implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.0.1")
 }
 ```
 
@@ -51,7 +51,7 @@ includeBuild("<이 레포까지의 상대경로>/ESTLoginKit-Android") {
 ```kotlin
 // 호스트 app/build.gradle.kts
 dependencies {
-    implementation("com.estaid:loginkit:2.0.0") // 위 substitution 으로 로컬 :estloginkit 로 치환됨
+    implementation("com.estaid:loginkit:2.0.1") // 위 substitution 으로 로컬 :estloginkit 로 치환됨
 }
 ```
 
@@ -71,7 +71,7 @@ maven("https://devrepo.kakao.com/nexus/content/groups/public/")
 
 // app/build.gradle.kts
 dependencies {
-  implementation("com.estaid:loginkit:2.0.0")
+  implementation("com.estaid:loginkit:2.0.1")
 }
 ```
 

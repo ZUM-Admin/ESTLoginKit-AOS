@@ -24,8 +24,26 @@
 ## 요구사항
 
 - minSdk 28 / compileSdk · targetSdk 35
-- Kotlin 2.2.10+, JVM 21
+- **Kotlin 2.0.21+** (2.0.x / 2.1.x / 2.2.x 모두 지원), 빌드 JDK 21
 - Jetpack Compose (SDK 내부 UI 사용)
+
+> **Kotlin 호환 정책 (2.0.1~)**
+>
+> SDK 는 Kotlin 2.2.10 으로 빌드하되 `languageVersion = 2.0` 으로 메타데이터를 낮춰 발행합니다.
+> Kotlin 컴파일러는 자기 버전 +1 마이너까지의 메타데이터만 읽으므로, 이 설정이 없으면
+> Kotlin 2.0.x 프로젝트에서 `incompatible version of Kotlin` 오류로 빌드가 실패합니다.
+>
+> 같은 이유로 아래 전이 의존성에 **상한**이 걸려 있습니다. 올리면 Kotlin 2.0.x 소비 앱이 깨집니다.
+>
+> | 의존성 | 고정 버전 | 올리면 안 되는 이유 |
+> |---|---|---|
+> | `kotlinx-serialization-json` | 1.8.1 | 1.9.0 은 메타데이터 2.2.0 |
+> | `retrofit` | 2.11.0 | 3.x 는 okhttp 5.x 를 요구 |
+> | `okhttp logging-interceptor` | 4.12.0 | 5.x 는 메타데이터 2.2.0 |
+> | `kotlin-stdlib` | 2.0.21 (하한) | 소비 앱이 더 높으면 그쪽이 선택됨 |
+>
+> 소비 앱이 이미 최신 스택(retrofit 3 / okhttp 5 등)을 쓰고 있다면 Gradle 이 높은 쪽을 선택하며,
+> SDK 는 그 위에서도 정상 동작합니다. 상한은 어디까지나 SDK 가 **끌어올리지 않기 위한** 것입니다.
 
 ## 모듈 구성
 
@@ -43,7 +61,7 @@ maven("https://devrepo.kakao.com/nexus/content/groups/public/") // 카카오 SDK
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.0.0")
+    implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.0.1")
 }
 ```
 

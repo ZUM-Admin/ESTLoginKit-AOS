@@ -54,6 +54,15 @@ android {
 
   kotlinOptions {
     jvmTarget = JavaVersion.VERSION_21.toString()
+    // 컴파일러는 2.2.10 을 그대로 쓰되, **언어/메타데이터 레벨만 2.0 으로 낮춘다.**
+    //
+    // Kotlin 컴파일러는 자기 버전 +1 마이너까지의 메타데이터만 읽는다. 2.2.10 이 그대로 뱉는
+    // mv=[2,2,0] 은 Kotlin 2.0.x 소비 앱에서 "incompatible version of Kotlin" 으로 거부된다.
+    // languageVersion 을 2.0 으로 내리면 mv=[2,0,0] 으로 emit 되어 2.0.x~2.2.x 가 모두 읽는다.
+    // (컴파일러 자체를 내리면 compose compiler·serialization 플러그인까지 동반 다운그레이드라
+    //  리스크가 훨씬 크다. 소비처 하한을 올리기 전까지 이 설정을 유지할 것.)
+    languageVersion = "2.0"
+    apiVersion = "2.0"
   }
 
   publishing {
@@ -71,6 +80,12 @@ android {
 }
 
 dependencies {
+  // stdlib 을 명시적으로 선언한다. KGP 기본 동작(자동 추가)에 맡기면 컴파일러 버전과 같은
+  // 2.2.10 이 **api variant** 로 발행되어, Kotlin 2.0.x 소비 앱의 컴파일 클래스패스에
+  // mv=[2,2,0] stdlib 이 올라가 빌드가 깨진다. (자동 추가는 gradle.properties 에서 끈다)
+  // Gradle 은 높은 쪽을 고르므로 Kotlin 2.1/2.2 소비 앱은 계속 자기 stdlib 을 쓴다.
+  api(libs.kotlin.stdlib)
+
   // Kotlin
   implementation(libs.coroutines.core)
   implementation(libs.coroutines.android)
@@ -115,7 +130,7 @@ afterEvaluate {
         from(components["release"])
         groupId = "com.estaid"
         artifactId = "loginkit"
-        version = "2.0.0"
+        version = "2.0.1"
       }
     }
     repositories {

@@ -92,6 +92,9 @@ android {
 dependencies {
   implementation(project(":estloginkit"))
 
+  // gradle.properties 에서 KGP 의 stdlib 자동 추가를 껐으므로 각 모듈이 명시 선언한다.
+  implementation(libs.kotlin.stdlib)
+
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.appcompat)
   implementation(libs.androidx.activity.compose)

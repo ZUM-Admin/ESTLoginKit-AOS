@@ -15,12 +15,17 @@ coreKtx = "1.13.1"
 appcompat = "1.7.0"
 
 # Kotlin libs
+# stdlib 은 컴파일러(2.2.10)가 아니라 **소비처 하한**에 맞춘다 — estloginkit/build.gradle.kts 주석 참고.
+kotlinStdlib = "2.0.21"
 coroutine = "1.10.2"
-kotlinxSerializationJson = "1.9.0"
+# 1.9.0 은 메타데이터 mv=[2,2,0] 이라 Kotlin 2.0.x 소비 앱에서 거부된다. 1.8.1 은 mv=[2,1,0] 로 통과.
+kotlinxSerializationJson = "1.8.1"
 
 # Network
-retrofit2 = "3.0.0"
-okhttp3LoggingInterceptor = "5.1.0"
+# retrofit 3.x 는 okhttp 5.x 를 요구하고, okhttp 5.1.0 은 mv=[2,2,0] 이라 Kotlin 2.0.x 소비 앱을
+# 깨뜨린다. okhttp 4.12 는 카카오(4.9.2)·네이버(4.2.1) SDK 가 기대하는 라인과도 정합적이다.
+retrofit2 = "2.11.0"
+okhttp3LoggingInterceptor = "4.12.0"
 retrofitKotlinxSerializationJson = "1.0.0"
 
 # Social
@@ -35,6 +40,7 @@ kotlinTest = "1.8.22"
 
 [libraries]
 # Kotlin
+kotlin-stdlib = { group = "org.jetbrains.kotlin", name = "kotlin-stdlib", version.ref = "kotlinStdlib" }
 coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutine" }
 coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutine" }
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
