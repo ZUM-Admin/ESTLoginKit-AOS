@@ -134,8 +134,11 @@ class MyApp : Application() {
 | `webViewInspectable(b)` | false | Chrome DevTools inspect |
 | `debugMode(b)` | false | SSL 우회 + 로깅 |
 | `onWebViewCreated(block)` | null | WebView 생성 직후 1회 (Hackle 등 wiring) |
-| `onPasswordChanged(block)` | null | 마이페이지 비번 변경 통지 |
-| `onAccountDeleted(block)` | null | 마이페이지 회원 탈퇴 통지 |
+| `onPasswordChanged(block)` | null | 마이페이지 비번 변경 통지 (컴포저블 인자 미지정 시 폴백) |
+| `onAccountDeleted(block)` | null | 마이페이지 회원 탈퇴 통지 (컴포저블 인자 미지정 시 폴백) |
+
+> 두 통지는 컴포저블 인자(`EstMyPageWebView(onPasswordChanged = ...)`)로 넘기는 게 우선이며,
+> 넘기지 않으면 위 config 콜백이 호출됩니다. 호출은 항상 **메인 스레드**입니다.
 
 ## 4. JS 브릿지 프로토콜
 
@@ -150,9 +153,14 @@ AndroidInterface.requestSnsLogin(JSON.stringify({ type: "sns-login", provider: "
 // provider: "kakao" | "naver" | "google" | "apple"
 AndroidInterface.requestLogout();           // 네이티브 SNS SDK 캐시 로그인 상태 삭제 ("다른 계정으로 로그인")
 AndroidInterface.onLoginComplete(message);  // 로그인 완료 통지(관찰/로깅용). 실제 ssoToken 회수·dismiss 는 callbackUrl 매칭으로 처리됨
-AndroidInterface.onPasswordChanged();       // 마이페이지 비밀번호 변경 통지
-AndroidInterface.onAccountDeleted();        // 마이페이지 회원 탈퇴 통지
+AndroidInterface.onPasswordChanged("{}");   // 마이페이지 비밀번호 변경 통지
+AndroidInterface.onAccountDeleted("{}");    // 마이페이지 회원 탈퇴 통지
 ```
+
+> **인자 개수 주의.** Android JS 브릿지는 *이름 + 인자 개수*로 메서드를 찾습니다. 개수가 안 맞으면
+> 메서드가 있어도 호출이 예외로 실패하고, 웹이 그걸 catch 하면 네이티브에는 아무 흔적도 남지 않습니다.
+> SDK 는 `onPasswordChanged` / `onAccountDeleted` / `onLoginComplete` / `requestLogout` 을
+> **인자 있는/없는 형태 모두** 받습니다. 페이로드는 현재 통지 내용에 쓰이지 않습니다.
 
 #### `requestLogout` — 인자 없음, 응답 없음
 

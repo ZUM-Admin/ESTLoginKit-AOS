@@ -261,6 +261,10 @@ EstLoginManager.logout()  // suspend — 카카오/네이버 네이티브 SDK �
 
 > - ssoToken은 **유효 60초, 1회용** — SDK가 웹뷰를 열 때마다 새로 발급하며, 저장·로그 출력하지 않습니다.
 > - 만료된 accessToken이면 `AuthError.Server(statusCode = 401)` — 앱이 refreshToken으로 갱신 후 재시도하세요.
+> - `onPasswordChanged` / `onAccountDeleted` 를 넘기지 않으면 `EstLoginConfiguration` 의 동명 콜백으로
+>   폴백합니다. 두 콜백 모두 **메인 스레드**에서 호출되므로 화면 전환·토큰 재발급을 바로 해도 됩니다.
+> - 약관·개인정보처리방침처럼 `window.open`/`target="_blank"` 로 열리는 링크는 SDK 가 별도 팝업
+>   WebView 로 띄웁니다. 뒤로가기 또는 웹의 `window.close()` 로 닫힙니다.
 > - 세션 쿠키가 살아있는 경우에는 `EstMyPageWebView(url = ...)` 직접 진입도 가능합니다.
 > - URL만 필요하면(`suspend`) `EstLoginManager.authorizedMypageUrl(accessToken)` / `authorizedVerificationUrl(accessToken, callbackUrl)`.
 
@@ -337,8 +341,8 @@ fun EstLoginWebView(
   callbackUrl: String? = EstLoginManager.getConfig()?.callbackUrl,
   extraUserAgent: String? = null,
   inspectable: Boolean = false,
-  onPasswordChanged: () -> Unit = {},
-  onAccountDeleted: () -> Unit = {},
+  onPasswordChanged: () -> Unit = /* config 의 onPasswordChanged 로 폴백 */,
+  onAccountDeleted: () -> Unit = /* config 의 onAccountDeleted 로 폴백 */,
   onBackPressed: () -> Unit = {},
   onLoginCompleted: (ssoToken: String?) -> Unit,
 )

@@ -142,6 +142,11 @@ private fun ExampleApp(activity: ComponentActivity) {
       } else {
         EstMyPageWebView(
           accessToken = accessToken,
+          onPasswordChanged = { status = "[bridge] 비밀번호 변경 통지 수신" },
+          onAccountDeleted = {
+            status = "[bridge] 회원 탈퇴 통지 수신 — 로그아웃 처리"
+            screen = Screen.MAIN
+          },
           onBackPressed = { screen = Screen.MAIN },
           onError = { error ->
             status = "마이페이지 SSO 발급 실패: ${error.message}"
