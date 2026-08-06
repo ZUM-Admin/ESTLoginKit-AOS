@@ -20,6 +20,7 @@ package com.estaid.loginkit.internal.webview
  */
 internal enum class WebViewMessage(val rawValue: String) {
   REQUEST_SNS_LOGIN("requestSnsLogin"),
+  REQUEST_LOGOUT("requestLogout"),
   ON_LOGIN_COMPLETE("onLoginComplete"),
   ON_PASSWORD_CHANGED("onPasswordChanged"),
   ON_ACCOUNT_DELETED("onAccountDeleted"),

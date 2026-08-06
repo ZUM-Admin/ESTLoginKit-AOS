@@ -25,6 +25,7 @@ import com.estaid.loginkit.internal.EstLog
  */
 internal class AuthJsInterface(
   private val onSnsLoginRequested: (String) -> Unit,
+  private val onLogoutRequested: () -> Unit,
   private val onPasswordChanged: () -> Unit,
   private val onAccountDeleted: () -> Unit,
 ) {
@@ -32,6 +33,19 @@ internal class AuthJsInterface(
   fun requestSnsLogin(message: String) {
     EstLog.debug("[bridge] ${WebViewMessage.REQUEST_SNS_LOGIN.rawValue}: $message")
     onSnsLoginRequested(message)
+  }
+
+  /**
+   * "다른 계정으로 로그인" 등 — 네이티브 SNS SDK 에 캐싱된 로그인 상태를 지워달라는 요청.
+   *
+   * 이게 없으면 다음 [requestSnsLogin] 에서 카카오/네이버 SDK 가 기존 토큰을 재사용해
+   * 계정 선택창 없이 같은 계정으로 조용히 로그인된다.
+   * 웹 세션 쿠키와 호스트 토큰은 건드리지 않는다(각자 책임).
+   */
+  @JavascriptInterface
+  fun requestLogout() {
+    EstLog.debug("[bridge] ${WebViewMessage.REQUEST_LOGOUT.rawValue}")
+    onLogoutRequested.invoke()
   }
 
   @JavascriptInterface

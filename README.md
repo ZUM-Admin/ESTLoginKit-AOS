@@ -61,7 +61,7 @@ maven("https://devrepo.kakao.com/nexus/content/groups/public/") // 카카오 SDK
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.0.2")
+    implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.1.0")
 }
 ```
 

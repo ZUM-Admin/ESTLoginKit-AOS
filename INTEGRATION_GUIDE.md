@@ -18,7 +18,7 @@ maven("https://devrepo.kakao.com/nexus/content/groups/public/") // 카카오 SDK
 ```kotlin
 // app/build.gradle.kts
 dependencies {
-  implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.0.2")
+  implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.1.0")
 }
 ```
 
@@ -51,7 +51,7 @@ includeBuild("<이 레포까지의 상대경로>/ESTLoginKit-Android") {
 ```kotlin
 // 호스트 app/build.gradle.kts
 dependencies {
-    implementation("com.estaid:loginkit:2.0.2") // 위 substitution 으로 로컬 :estloginkit 로 치환됨
+    implementation("com.estaid:loginkit:2.1.0") // 위 substitution 으로 로컬 :estloginkit 로 치환됨
 }
 ```
 
@@ -71,7 +71,7 @@ maven("https://devrepo.kakao.com/nexus/content/groups/public/")
 
 // app/build.gradle.kts
 dependencies {
-  implementation("com.estaid:loginkit:2.0.2")
+  implementation("com.estaid:loginkit:2.1.0")
 }
 ```
 
@@ -148,10 +148,27 @@ JS 브릿지 객체 이름은 `AndroidInterface` 입니다.
 ```javascript
 AndroidInterface.requestSnsLogin(JSON.stringify({ type: "sns-login", provider: "kakao" }));
 // provider: "kakao" | "naver" | "google" | "apple"
+AndroidInterface.requestLogout();           // 네이티브 SNS SDK 캐시 로그인 상태 삭제 ("다른 계정으로 로그인")
 AndroidInterface.onLoginComplete(message);  // 로그인 완료 통지(관찰/로깅용). 실제 ssoToken 회수·dismiss 는 callbackUrl 매칭으로 처리됨
 AndroidInterface.onPasswordChanged();       // 마이페이지 비밀번호 변경 통지
 AndroidInterface.onAccountDeleted();        // 마이페이지 회원 탈퇴 통지
 ```
+
+#### `requestLogout` — 인자 없음, 응답 없음
+
+카카오/네이버 네이티브 SDK 에 캐싱된 로그인 상태를 지웁니다. **"다른 계정으로 로그인" 진입 시 웹이 호출해야 합니다.**
+
+호출하지 않으면 다음 `requestSnsLogin` 에서 SNS SDK 가 기존 토큰을 재사용해, 계정 선택창 없이 직전과 같은 계정으로 조용히 로그인됩니다.
+
+지우는 범위는 **네이티브 SNS SDK 토큰뿐**입니다.
+
+| 대상 | 정리 주체 |
+|---|---|
+| 카카오/네이버 SDK 토큰 | `requestLogout` (SDK) |
+| 웹 세션 쿠키 / localStorage | **웹** (자기 도메인이므로 직접 정리) |
+| 호스트 앱 accessToken / refreshToken | **호스트 앱** |
+
+응답 콜백이 없으므로 웹은 호출 후 곧바로 다음 동작(로그인 페이지 이동 등)을 진행하면 됩니다.
 
 ### 네이티브 → 웹
 
@@ -170,8 +187,13 @@ window.onNativeSnsLoginError = function (error) {
 
 - SDK 는 특정 도메인을 하드코딩하지 않습니다. Android `CookieManager` 는 프로세스 전역 공유이므로,
   WebView 로그인이 남긴 쿠키를 호스트 WebView 가 그대로 활용합니다.
-- `EstLoginManager.logout()` 은 네이티브 토큰 + WebView 세션 데이터(쿠키/localStorage)를 정리합니다.
-  서비스 도메인 고유의 세션 유지 정책(예: 정책 페이지 keepalive)이 필요하면 호스트에서 구현하세요.
+- `EstLoginManager.logout()` 은 **카카오/네이버 네이티브 SDK 토큰만** 정리합니다 (각각 best-effort,
+  한쪽이 실패해도 나머지는 계속 진행). **WebView 쿠키/localStorage 는 SDK 가 건드리지 않습니다.**
+  - 웹 세션은 웹이 소유하며, SDK WebView 는 열 때마다 accessToken 부트스트랩(`/auth/sso-login`)으로
+    세션을 새로 검증·수립하므로 앱 로그아웃 시 로컬 웹 데이터를 지울 필요가 없습니다.
+  - 호스트가 저장한 accessToken/refreshToken 은 SDK 가 보관하지 않으므로 **호스트가 직접 삭제**해야 합니다.
+  - 웹에서 "다른 계정으로 로그인"을 눌러 네이티브 SNS 캐시만 비우고 싶다면 §4 의 `requestLogout` 을 쓰세요.
+- 서비스 도메인 고유의 세션 유지 정책(예: 정책 페이지 keepalive)이 필요하면 호스트에서 구현하세요.
 
 ## 6. 무결합(stateless) 설계 노트
 

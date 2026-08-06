@@ -41,12 +41,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.estaid.loginkit.EstLoginManager
 import com.estaid.loginkit.internal.EstLog
+import kotlinx.coroutines.launch
 
 /** 로그 출력용. `code`(ssoToken)는 저장·로그 금지이므로 값을 마스킹한다. */
 private fun redactForLog(url: String): String =
@@ -95,6 +98,11 @@ internal fun WebViewScreen(
 
   val initialState = remember(url) { resolveInitialState(url) }
 
+  // requestLogout 은 페이로드도 응답도 없고 WebView 참조도 필요 없어서, 호출부로 콜백을 뚫지 않고
+  // 여기서 SDK 를 직접 호출한다. (@JavascriptInterface 는 JavaBridge 스레드에서 불리므로
+  // suspend 인 logout() 을 부르려면 반드시 이 scope 를 거쳐야 한다)
+  val logoutScope = rememberCoroutineScope()
+
   BackHandler {
     if (webView?.canGoBack() == true) webView?.goBack() else onBackPressed()
   }
@@ -133,6 +141,7 @@ internal fun WebViewScreen(
           addJavascriptInterface(
             AuthJsInterface(
               onSnsLoginRequested = onSnsLoginRequested,
+              onLogoutRequested = { logoutScope.launch { EstLoginManager.logout() } },
               onPasswordChanged = onPasswordChanged,
               onAccountDeleted = onAccountDeleted,
             ),

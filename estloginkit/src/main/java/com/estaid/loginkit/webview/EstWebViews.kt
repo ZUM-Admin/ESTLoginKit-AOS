@@ -17,6 +17,7 @@ package com.estaid.loginkit.webview
 
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -28,7 +29,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.remember
 import com.estaid.loginkit.EstLoginManager
@@ -63,7 +63,7 @@ fun EstLoginWebView(
   onBackPressed: () -> Unit = {},
   onLoginCompleted: (ssoToken: String?) -> Unit,
 ) {
-  val activity = LocalContext.current as? ComponentActivity
+  val activity = LocalActivity.current as? ComponentActivity
   var webViewRef: WebView? = null
 
   WebViewScreen(
@@ -202,7 +202,7 @@ fun EstMyPageWebView(
   onAccountDeleted: () -> Unit = {},
   onBackPressed: () -> Unit = {},
 ) {
-  val activity = LocalContext.current as? ComponentActivity
+  val activity = LocalActivity.current as? ComponentActivity
   var webViewRef: WebView? = null
 
   WebViewScreen(
@@ -269,7 +269,7 @@ fun EstVerificationWebView(
     return
   }
 
-  val activity = LocalContext.current as? ComponentActivity
+  val activity = LocalActivity.current as? ComponentActivity
   var webViewRef: WebView? = null
   val delivery = remember(onResult) { VerificationResultDelivery(onResult) }
 
