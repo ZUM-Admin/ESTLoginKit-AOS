@@ -270,6 +270,13 @@ private class EstWebViewClient(
       return false
     }
 
+    // 앱 스킴(intent:// 등)은 WebView 가 로드하지 못해 ERR_UNKNOWN_URL_SCHEME 로 멈춘다.
+    // 아직 위임 처리를 넣지 않았으므로, 실제로 발생하면 로그로 즉시 판별할 수 있게 남긴다.
+    val scheme = runCatching { Uri.parse(url).scheme }.getOrNull()
+    if (scheme != null && scheme != "http" && scheme != "https") {
+      EstLog.error("unsupported scheme — WebView cannot load: ${redactForLog(url)}")
+    }
+
     return false
   }
 

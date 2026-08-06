@@ -238,14 +238,16 @@ fun EstMyPageWebView(
  * [onResult] 는 1회만 호출된다.
  *
  * @param accessToken 앱이 보유한 유효한 accessToken. 만료 판단·갱신은 앱 책임.
- * @param callbackUrl 브릿지 미등록 시 리다이렉트될 앱 콜백 URL. 브릿지가 우선이므로 생략해도 동작한다.
+ * @param callbackUrl 완료 시 리다이렉트될 앱 콜백 URL. 기본값은 설정의 `callbackUrl`
+ *   (`{baseUrl}/auth/app-callback`). 결과는 이 리다이렉트로만 도착하므로 `null` 을 넘기면
+ *   [onResult] 가 호출되지 않는다.
  * @param onResult 발급 실패 시 [AuthError.Server] (statusCode 401) 등, 사용자 취소 시
  *   [AuthError.Cancelled], 승격/병합 실패 시 [AuthError.VerificationFailed].
  */
 @Composable
 fun EstVerificationWebView(
   accessToken: String,
-  callbackUrl: String? = null,
+  callbackUrl: String? = EstLoginManager.getConfig()?.callbackUrl,
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
   inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
   onBackPressed: () -> Unit = {},
@@ -253,7 +255,7 @@ fun EstVerificationWebView(
 ) {
   var resolvedUrl by remember { mutableStateOf<String?>(null) }
 
-  LaunchedEffect(accessToken) {
+  LaunchedEffect(accessToken, callbackUrl) {
     try {
       resolvedUrl = EstLoginManager.authorizedVerificationUrl(accessToken, callbackUrl)
     } catch (e: Exception) {

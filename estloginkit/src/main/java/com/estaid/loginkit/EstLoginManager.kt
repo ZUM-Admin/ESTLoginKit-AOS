@@ -19,6 +19,7 @@ import android.app.Activity
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import com.estaid.loginkit.internal.AuthUrls
 import com.estaid.loginkit.internal.EstLog
 import com.estaid.loginkit.internal.SocialLoginInitializer
 import com.estaid.loginkit.internal.SsoBootstrap
@@ -194,8 +195,12 @@ object EstLoginManager {
    *   **생략하면 결과를 받을 경로가 없다** — 화면이 인증 흐름의 종착점이면 반드시 지정하라.
    */
   fun verificationUrl(callbackUrl: String? = null): String {
-    val path = "${requireConfig().baseUrl}/auth/verification"
-    return if (callbackUrl.isNullOrBlank()) path else "$path?callbackURL=${encode(callbackUrl)}"
+    val cfg = requireConfig()
+    return AuthUrls.verification(
+      baseUrl = cfg.baseUrl,
+      clientId = cfg.clientId,
+      callbackUrl = callbackUrl,
+    )
   }
 
   // endregion

@@ -130,7 +130,7 @@ afterEvaluate {
         from(components["release"])
         groupId = "com.estaid"
         artifactId = "loginkit"
-        version = "2.0.1"
+        version = "2.0.2"
       }
     }
     repositories {

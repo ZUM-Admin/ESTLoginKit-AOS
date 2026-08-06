@@ -61,7 +61,7 @@ maven("https://devrepo.kakao.com/nexus/content/groups/public/") // 카카오 SDK
 
 // app/build.gradle.kts
 dependencies {
-    implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.0.1")
+    implementation("com.github.ZUM-Admin:ESTLoginKit-AOS:2.0.2")
 }
 ```
 
@@ -413,7 +413,9 @@ data class VerificationResult(
 @Composable
 fun EstVerificationWebView(
   accessToken: String,          // 만료 판단·갱신은 앱 책임. 발급 실패는 onResult 로 failure 전달
-  callbackUrl: String? = null,  // 완료 시 리다이렉트될 앱 콜백 URL (생략하면 결과 수신 불가)
+  // 완료 시 리다이렉트될 앱 콜백 URL. 기본값은 설정의 callbackUrl ({baseUrl}/auth/app-callback).
+  // null 을 명시하면 결과를 받을 경로가 없어 onResult 가 호출되지 않는다.
+  callbackUrl: String? = EstLoginManager.getConfig()?.callbackUrl,
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
   inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
   onBackPressed: () -> Unit = {},
@@ -425,7 +427,7 @@ accessToken 진입 시 SDK가 ssoToken을 발급해 부트스트랩 URL로 이�
 동작**합니다. 목적지 URL은 `EstLoginManager.verificationUrl(callbackUrl)` 로 생성됩니다.
 
 ```
-{baseUrl}/auth/verification?callbackURL=<앱 콜백 URL, URL인코딩>
+{baseUrl}/auth/verification?client_id={클라이언트 ID}&callbackURL=<앱 콜백 URL, URL인코딩>
 ```
 
 인증 회원 승격과 CI 충돌 해소는 웹뷰가 자체 처리합니다.
