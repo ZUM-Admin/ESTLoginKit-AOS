@@ -43,6 +43,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 /**
+ * 마이페이지 통지 콜백의 기본값 — 호스트가 인자를 넘기지 않으면 설정([EstLoginConfiguration])의
+ * 콜백으로 폴백한다. (Activity 경로와 동일한 동작. 이게 없으면 config 에만 콜백을 등록한 앱은
+ * 컴포저블 경로에서 아무 통지도 못 받는다)
+ */
+private val ConfigPasswordChanged: () -> Unit =
+  { EstLoginManager.getConfig()?.onPasswordChanged?.invoke() }
+
+private val ConfigAccountDeleted: () -> Unit =
+  { EstLoginManager.getConfig()?.onAccountDeleted?.invoke() }
+
+/**
  * 로그인 WebView 컴포저블.
  *
  * 자체 Compose 네비게이션에 임베드할 때 사용한다. (Activity 기반은 [EstLoginManager.login])
@@ -58,8 +69,8 @@ fun EstLoginWebView(
   callbackUrl: String? = EstLoginManager.getConfig()?.callbackUrl,
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
   inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
-  onPasswordChanged: () -> Unit = {},
-  onAccountDeleted: () -> Unit = {},
+  onPasswordChanged: () -> Unit = ConfigPasswordChanged,
+  onAccountDeleted: () -> Unit = ConfigAccountDeleted,
   onBackPressed: () -> Unit = {},
   onLoginCompleted: (ssoToken: String?) -> Unit,
 ) {
@@ -107,8 +118,8 @@ fun EstLoginWebViewWithAccessToken(
   callbackUrl: String? = EstLoginManager.getConfig()?.callbackUrl,
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
   inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
-  onPasswordChanged: () -> Unit = {},
-  onAccountDeleted: () -> Unit = {},
+  onPasswordChanged: () -> Unit = ConfigPasswordChanged,
+  onAccountDeleted: () -> Unit = ConfigAccountDeleted,
   onBackPressed: () -> Unit = {},
   onError: (Throwable) -> Unit = {},
   onLoginCompleted: (ssoToken: String?) -> Unit,
@@ -156,8 +167,8 @@ fun EstMyPageWebView(
   accessToken: String,
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
   inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
-  onPasswordChanged: () -> Unit = {},
-  onAccountDeleted: () -> Unit = {},
+  onPasswordChanged: () -> Unit = ConfigPasswordChanged,
+  onAccountDeleted: () -> Unit = ConfigAccountDeleted,
   onBackPressed: () -> Unit = {},
   onError: (Throwable) -> Unit = {},
 ) {
@@ -198,8 +209,8 @@ fun EstMyPageWebView(
   url: String = EstLoginManager.mypageUrl,
   extraUserAgent: String? = EstLoginManager.getConfig()?.extraUserAgent,
   inspectable: Boolean = EstLoginManager.getConfig()?.webViewInspectable ?: false,
-  onPasswordChanged: () -> Unit = {},
-  onAccountDeleted: () -> Unit = {},
+  onPasswordChanged: () -> Unit = ConfigPasswordChanged,
+  onAccountDeleted: () -> Unit = ConfigAccountDeleted,
   onBackPressed: () -> Unit = {},
 ) {
   val activity = LocalActivity.current as? ComponentActivity
