@@ -300,6 +300,7 @@ object EstLoginManager {
    */
   suspend fun logout() {
     val cfg = config ?: return
+    EstLog.debug("logout: kakao=${cfg.kakaoConfig != null} naver=${cfg.naverConfig != null}")
     if (cfg.kakaoConfig != null) runCatching { kakaoLogout() }.onFailure { EstLog.error("Kakao logout failed", it) }
     if (cfg.naverConfig != null) runCatching { naverLogout() }.onFailure { EstLog.error("Naver logout failed", it) }
   }
@@ -314,6 +315,7 @@ object EstLoginManager {
   private suspend fun naverLogout(): Unit = suspendCancellableCoroutine { continuation ->
     NidOAuth.logout(object : NidOAuthCallback {
       override fun onSuccess() {
+        EstLog.debug("Naver logout ok")
         if (continuation.isActive) continuation.resume(Unit)
       }
 

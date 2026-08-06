@@ -49,7 +49,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -57,11 +56,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.estaid.loginkit.EstLoginManager
 import com.estaid.loginkit.internal.EstLog
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /** 로그 출력용. `code`(ssoToken)는 저장·로그 금지이므로 값을 마스킹한다. */
 private fun redactForLog(url: String): String =
   Regex("([?&]code=)[^&]*").replace(url) { "${it.groupValues[1]}***" }
+
+/**
+ * requestLogout 처리용 스코프 — 컴포지션 수명에 묶으면 안 된다.
+ *
+ * 웹은 보통 requestLogout 직후 화면을 닫거나 이동시키는데, rememberCoroutineScope 를 쓰면
+ * 그 시점에 스코프가 취소되면서 suspend 인 logout() 이 카카오/네이버 콜백을 기다리다 잘린다.
+ * (EstMyPageActivity 가 계정 삭제 로그아웃을 앱 스코프로 돌리는 것과 같은 이유)
+ */
+private val logoutScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
 /**
  * 로그인 완료 감지(state 매칭)의 대상 state를 요청 URL에서 추출한다.
@@ -112,11 +123,6 @@ internal fun WebViewScreen(
   DisposableEffect(popupHost) {
     onDispose { popupHost.dismiss() }
   }
-
-  // requestLogout 은 페이로드도 응답도 없고 WebView 참조도 필요 없어서, 호출부로 콜백을 뚫지 않고
-  // 여기서 SDK 를 직접 호출한다. (@JavascriptInterface 는 JavaBridge 스레드에서 불리므로
-  // suspend 인 logout() 을 부르려면 반드시 이 scope 를 거쳐야 한다)
-  val logoutScope = rememberCoroutineScope()
 
   BackHandler {
     if (webView?.canGoBack() == true) webView?.goBack() else onBackPressed()
