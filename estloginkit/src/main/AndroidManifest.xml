@@ -41,8 +41,17 @@
   </queries>
 
   <application>
+    <!--
+      configChanges — 구성 변경으로 Activity 가 재생성되면 WebView 가 새로 만들어지면서 최초 URL 로
+      되돌아간다(WebViewScreen 의 AndroidView factory 는 항상 loadUrl(url) 로 시작한다). 네이버
+      보안문자처럼 여러 단계를 거치는 로그인 흐름이 화면 회전·멀티윈도우/폴더블·다크모드·폰트 크기
+      변경만으로 처음부터 다시 시작되는 것을 막는다. Compose 는 이 플래그가 있어도 구성 변경을
+      LocalConfiguration 으로 받아 UI 를 갱신하므로 레이아웃 대응에는 문제가 없다.
+      (프로세스 사망으로 인한 재생성은 이걸로 막을 수 없다 — 별도 saveState/restoreState 필요)
+    -->
     <activity
       android:name="com.estaid.loginkit.internal.webview.WebViewActivity"
+      android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|layoutDirection|locale|keyboard|keyboardHidden|navigation"
       android:exported="false"
       android:theme="@style/Theme.EstLoginKit" />
 
