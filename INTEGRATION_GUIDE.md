@@ -94,6 +94,33 @@ android {
 > 호스트 매니페스트에 **직접 선언하지 마세요** — SDK 가 제공합니다.
 > 카카오 미사용 시 `manifestPlaceholders["kakaoAuthScheme"] = ""`.
 
+### 웹뷰 컴포저블을 띄우는 Activity 에는 `configChanges` 가 필수입니다
+
+`EstLoginWebView` / `EstMyPageWebView` 같은 **컴포저블을 호스트 화면 안에서** 쓰는 경우,
+그 Activity 에 `android:configChanges` 를 선언해야 합니다.
+
+```xml
+<activity
+  android:name=".MyLoginActivity"
+  android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|layoutDirection|locale|keyboard|keyboardHidden|navigation" />
+```
+
+이게 없으면 **화면 회전·다크모드 전환·폰트 크기 변경·폴더블 접기** 만으로 Activity 가 재생성되고,
+웹뷰가 새로 만들어지면서 진행 중이던 로그인 흐름(2차 인증·보안문자 입력 등)이 **처음 화면으로
+되돌아가거나 통째로 사라집니다**. iOS `WKWebView` 에는 재생성 개념이 없어 이 문제가 없으므로,
+"AOS 에서만 그런다" 는 제보로 올라오기 쉽습니다.
+
+화면 전환 상태를 `remember` 로 들고 있다면 `rememberSaveable` 로 바꾸는 것도 함께 권장합니다 —
+`configChanges` 는 구성 변경만 막아주고, 메모리 회수로 인한 프로세스 재생성은 못 막습니다.
+
+```kotlin
+var screen by rememberSaveable { mutableStateOf(Screen.MAIN) }
+```
+
+> `EstLoginManager.startWebLogin(...)` 으로 **SDK 의 별도 화면**을 띄우는 경우에는 필요 없습니다 —
+> SDK 의 `WebViewActivity` 는 자체적으로 이 설정을 갖고 있습니다. 다만 `startWebLogin` 의 결과는
+> 호출한 Activity 인스턴스로 전달되므로, **호출부 Activity 도 재생성되지 않게** 해두는 편이 안전합니다.
+
 ## 3. 초기화
 
 ```kotlin
