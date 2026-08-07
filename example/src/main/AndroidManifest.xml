@@ -11,8 +11,16 @@
     android:supportsRtl="true"
     android:theme="@style/Theme.EstLoginKitExample">
 
+    <!--
+      configChanges — 호스트 앱이 반드시 따라 해야 하는 설정이다.
+      로그인/마이페이지 웹뷰 컴포저블(EstLoginWebView, EstMyPageWebView)은 이 Activity 의
+      컴포지션 안에서 살기 때문에, 구성 변경으로 Activity 가 재생성되면 진행 중이던 로그인 흐름
+      (2차 인증·보안문자 등)이 통째로 사라진다. SDK 의 WebViewActivity 는 자체적으로 이 설정을
+      갖고 있지만, 임베디드 컴포저블을 쓰는 화면은 호스트가 직접 선언해야 한다.
+    -->
     <activity
       android:name=".MainActivity"
+      android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density|fontScale|layoutDirection|locale|keyboard|keyboardHidden|navigation"
       android:exported="true"
       android:theme="@style/Theme.EstLoginKitExample">
       <intent-filter>

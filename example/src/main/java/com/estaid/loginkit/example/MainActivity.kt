@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,7 +73,9 @@ private fun ExampleApp(activity: ComponentActivity) {
   val scope = rememberCoroutineScope()
   val tokenStore = remember { TokenStore(activity) }
 
-  var screen by remember { mutableStateOf(Screen.MAIN) }
+  // rememberSaveable — 프로세스가 죽었다 살아나도 보던 화면을 유지한다.
+  // configChanges(매니페스트)는 구성 변경만 막아주고, 메모리 회수로 인한 재생성은 못 막는다.
+  var screen by rememberSaveable { mutableStateOf(Screen.MAIN) }
   var status by remember { mutableStateOf("대기 중") }
   var authResult by remember { mutableStateOf<AuthResult?>(null) }
   var estoneToken by remember { mutableStateOf<EstoneToken?>(null) }
