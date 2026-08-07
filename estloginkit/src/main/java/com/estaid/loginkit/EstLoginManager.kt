@@ -17,7 +17,9 @@ package com.estaid.loginkit
 
 import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import androidx.activity.ComponentActivity
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import com.estaid.loginkit.internal.AuthUrls
 import com.estaid.loginkit.internal.EstLog
@@ -41,6 +43,7 @@ import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.net.URI
 import java.net.URLEncoder
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
 
 /**
@@ -54,6 +57,9 @@ object EstLoginManager {
   private var initializer: SocialLoginInitializer? = null
   private var networkClient: AuthNetworkClient? = null
   private val providers = mutableMapOf<LoginPlatform, AuthProvider>()
+
+  /** [startWebLogin] 의 ActivityResult 등록 키를 호출마다 유니크하게 만드는 카운터. */
+  private val webLoginRequestCount = AtomicInteger(0)
 
   /** 앱 진입점에서 1회 호출. */
   fun initialize(context: Context, config: EstLoginConfiguration) {
@@ -115,10 +121,17 @@ object EstLoginManager {
     val resolvedUrl = url?.takeIf { it.isNotBlank() }
       ?: bootstrapLoginUrl(redirectUrl = redirectUrl, state = state)
     return suspendCancellableCoroutine { continuation ->
-      val launcher = activity.activityResultRegistry.register(
-        "estloginkit-weblogin",
+      // 키는 호출마다 유니크해야 한다. 고정 키를 쓰면 로그인 화면을 닫았다 다시 여는 등
+      // 같은 Activity 에서 두 번째 호출이 들어올 때 이전 등록과 충돌한다.
+      val key = "estloginkit-weblogin-${webLoginRequestCount.incrementAndGet()}"
+      lateinit var launcher: ActivityResultLauncher<Intent>
+      launcher = activity.activityResultRegistry.register(
+        key,
         ActivityResultContracts.StartActivityForResult(),
       ) { result ->
+        // 등록은 LifecycleOwner 에 묶여 있지 않으므로 SDK 가 직접 해제해야 한다.
+        // 안 하면 Activity 가 살아있는 동안 등록이 계속 쌓인다.
+        launcher.unregister()
         if (!continuation.isActive) return@register
         if (result.resultCode == Activity.RESULT_OK) {
           val ssoToken = result.data?.getStringExtra(WebViewActivity.RESULT_SSO_TOKEN)
@@ -126,6 +139,11 @@ object EstLoginManager {
         } else {
           continuation.resume(Result.failure(AuthError.Cancelled))
         }
+      }
+      // 호출한 쪽 scope 가 먼저 죽는 경우(Activity 재생성 등)에도 등록을 정리한다.
+      // unregister 는 메인 스레드에서 해야 안전하다.
+      continuation.invokeOnCancellation {
+        activity.runOnUiThread { runCatching { launcher.unregister() } }
       }
       val intent = WebViewActivity.createIntent(
         context = activity,
